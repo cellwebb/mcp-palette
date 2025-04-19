@@ -10,6 +10,7 @@ const ProfileServerList = ({
   onToggleServer,
   onEditOverrides,
   onRemoveServer,
+  onRestoreDefaults,
 }) => {
   if (
     !profile ||
@@ -97,6 +98,19 @@ const ProfileServerList = ({
                         onEditOverrides(serverId);
                       },
                       icon: "✏️",
+                    },
+                    {
+                      label: "Restore Defaults",
+                      action: () => {
+                        if (
+                          confirm(
+                            `Restore default configuration for ${masterData.name}? This will remove all customizations.`,
+                          )
+                        ) {
+                          onRestoreDefaults(serverId, profile.name);
+                        }
+                      },
+                      icon: "🔄",
                     },
                     {
                       label: "Remove from Profile",

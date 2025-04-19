@@ -8,6 +8,7 @@ const ServerMasterList = ({
   onAddServer,
   onDeleteServer,
   onViewServerJson,
+  onRestoreDefaults,
 }) => {
   if (!servers || Object.keys(servers).length === 0) {
     return (
@@ -68,6 +69,20 @@ const ServerMasterList = ({
                     label: "View JSON",
                     action: () => onViewServerJson(serverId),
                     icon: "📑",
+                  },
+                  {
+                    label: "Restore Defaults",
+                    action: () => {
+                      if (
+                        confirm(
+                          `Restore default configuration for server "${serverData.name}"?`,
+                        )
+                      ) {
+                        // Call restore function passed as prop
+                        onRestoreDefaults(serverId);
+                      }
+                    },
+                    icon: "🔄",
                   },
                   {
                     label: "Delete Server",

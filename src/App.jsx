@@ -174,6 +174,61 @@ const App = () => {
     }
   };
 
+  // Handle restoring server defaults
+  const handleRestoreServerDefaults = async (serverId) => {
+    try {
+      // Since we don't have a direct API for server defaults, we'll create a
+      // simplified version based on server ID
+      const serverType = serverId.split("-")[0] || serverId; // Extract server type from ID
+
+      // Default configurations based on server type
+      const defaultConfigs = {
+        filesystem: {
+          name: "filesystem",
+          command: "npx",
+          args: ["-y", "@modelcontextprotocol/server-filesystem"],
+          env: { BASE_DIRS: "~/Documents,~/Downloads" },
+        },
+        memory: {
+          name: "memory",
+          command: "npx",
+          args: ["-y", "@modelcontextprotocol/server-memory"],
+          env: { MEMORY_FILE_PATH: "~/.mcp-memory.json" },
+        },
+        puppeteer: {
+          name: "puppeteer",
+          command: "npx",
+          args: ["-y", "@modelcontextprotocol/server-puppeteer"],
+          env: {
+            HEADLESS: "true",
+            USER_AGENT: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+          },
+        },
+        // Add more server types as needed
+      };
+
+      // Get default configuration for this server type
+      const defaultConfig = defaultConfigs[serverType] || {
+        name: serverMasterList[serverId].name,
+        command: "npx",
+        args: ["-y", `@modelcontextprotocol/server-${serverType}`],
+        env: {},
+      };
+
+      // Update the server with default configuration
+      const updatedMasterList = await window.api.updateMasterServer(
+        serverId,
+        defaultConfig,
+      );
+      setServerMasterList(updatedMasterList);
+
+      alert(`Server "${serverId}" restored to default configuration.`);
+    } catch (error) {
+      console.error("Failed to restore server defaults:", error);
+      alert(`Failed to restore defaults: ${error.message}`);
+    }
+  };
+
   // Handle toggling a server in a profile
   const handleToggleProfileServer = async (serverId) => {
     try {
@@ -317,6 +372,41 @@ const App = () => {
     }
   };
 
+  // Handle restoring profile server defaults (removes all overrides)
+  const handleRestoreProfileServerDefaults = async (serverId, profileName) => {
+    try {
+      // Get current profile
+      const profile = profiles.find((p) => p.name === profileName);
+      if (!profile) return;
+
+      // Create a copy of the profile
+      const updatedProfile = { ...profile };
+
+      // Reset server to default (remove all overrides) but keep enabled state
+      if (updatedProfile.servers && updatedProfile.servers[serverId]) {
+        const isEnabled = updatedProfile.servers[serverId].enabled;
+        updatedProfile.servers[serverId] = {
+          enabled: isEnabled,
+          overrides: {}, // Empty overrides
+        };
+      }
+
+      // Update profile
+      const updatedProfiles = await window.api.updateProfile(
+        profileName,
+        updatedProfile,
+      );
+      setProfiles(updatedProfiles);
+
+      alert(
+        `Server "${serverId}" in profile "${profileName}" restored to defaults.`,
+      );
+    } catch (error) {
+      console.error("Failed to restore server defaults:", error);
+      alert(`Failed to restore defaults: ${error.message}`);
+    }
+  };
+
   // Handle importing config
   const handleImportConfig = async () => {
     try {
@@ -397,14 +487,6 @@ const App = () => {
       )}
       <header className="header">
         <h1>MCP Server Manager</h1>
-        <div className="header-actions">
-          <button
-            className="button button-secondary"
-            onClick={handleExportConfig}
-          >
-            Export
-          </button>
-        </div>
       </header>
 
       <div className="tabs">
@@ -514,6 +596,9 @@ const App = () => {
                             onToggleServer={handleToggleProfileServer}
                             onEditOverrides={handleEditOverrides}
                             onRemoveServer={handleRemoveServerFromProfile}
+                            onRestoreDefaults={
+                              handleRestoreProfileServerDefaults
+                            }
                           />
                         </>
                       )}
@@ -526,6 +611,7 @@ const App = () => {
                         setSelectedServerMaster(serverId);
                         setViewingServerJson(true);
                       }}
+                      onRestoreDefaults={handleRestoreServerDefaults}
                     />
                   )}
                 </>
