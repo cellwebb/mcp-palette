@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import KebabIcon from "./KebabIcon";
 
 /**
  * A dropdown menu component that displays a list of actions
@@ -44,11 +45,7 @@ const DropdownMenu = ({ items }) => {
         aria-label="More options"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="dots-container">
-          <span className="dot"></span>
-          <span className="dot"></span>
-          <span className="dot"></span>
-        </div>
+        <KebabIcon />
       </button>
       {isOpen && (
         <div className="dropdown-menu">
