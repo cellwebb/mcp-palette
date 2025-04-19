@@ -11,6 +11,8 @@ const scriptsToMakeExecutable = [
   "build.sh",
   "clean-build.sh",
   "simple-build.sh",
+  "rebuild-and-start.sh",
+  "fix-and-rebuild.sh",
 ];
 
 // Function to make a file executable

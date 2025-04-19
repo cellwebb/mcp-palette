@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import DropdownMenu from "./DropdownMenu";
 import ConfirmationModal from "./ConfirmationModal";
-import RenameModal from "./RenameModal";
+import SimpleRenameModal from "./SimpleRenameModal";
 
 const ProfileSelector = ({
   profiles,
@@ -59,29 +59,25 @@ const ProfileSelector = ({
     setShowRenameModal(true);
   };
 
-  // Handle rename confirmation from modal
-  const handleRenameConfirm = async (newName) => {
-    if (!profileToRename || !newName) return;
+  // Handle rename success from modal
+  const handleRenameSuccess = async (updatedProfiles) => {
+    // Modal handles the rename operation directly
+    console.log("Profile renamed successfully");
 
-    setOperationInProgress(true);
-    try {
-      await onRenameProfile(profileToRename, newName);
-      setShowRenameModal(false);
-      setProfileToRename(null);
-    } catch (error) {
-      console.error("Error during rename:", error);
-      await window.api.safeAlert(
-        `Failed to rename profile: ${error.message || "Unknown error"}`,
-      );
-    } finally {
-      setOperationInProgress(false);
-    }
+    // Close the modal
+    setShowRenameModal(false);
+    setProfileToRename(null);
+    setOperationInProgress(false);
+
+    // If the parent's onRenameProfile was successfully called by the modal
+    // then we don't need to do anything else here
   };
 
   // Cancel renaming
   const handleRenameCancel = () => {
     setShowRenameModal(false);
     setProfileToRename(null);
+    setOperationInProgress(false);
   };
 
   // Initiate profile deletion
@@ -159,12 +155,13 @@ const ProfileSelector = ({
       )}
 
       {/* Rename Modal */}
-      <RenameModal
+      <SimpleRenameModal
         isOpen={showRenameModal}
-        title="Rename Profile"
-        initialName={profileToRename}
-        onConfirm={handleRenameConfirm}
+        profileName={profileToRename}
+        profiles={profiles}
+        onSuccess={handleRenameSuccess}
         onCancel={handleRenameCancel}
+        onRenameProfile={onRenameProfile}
       />
 
       <div className="profile-selector-header">

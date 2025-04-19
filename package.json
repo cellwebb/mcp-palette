@@ -12,7 +12,9 @@
     "electron:dev": "concurrently \"cross-env VITE_DEV_SERVER_HOST=localhost VITE_DEV_SERVER_PORT=3000 vite --port 3000\" \"electron .\"",
     "minimal-build": "vite build && node minimal-build.js",
     "electron:preview": "vite build && electron .",
-    "postinstall": "node chmod.js"
+    "postinstall": "node chmod.js",
+    "make-executable": "node chmod.js",
+    "fix": "node chmod.js && ./fix-and-rebuild.sh"
   },
   "dependencies": {
     "electron-store": "^8.1.0",

@@ -233,6 +233,12 @@ ipcMain.handle("rename-profile", async (event, { oldName, newName }) => {
     throw new Error("New profile name cannot be empty");
   }
 
+  // Early return for no change (not an error)
+  if (newName === oldName) {
+    console.log("No change in name, returning current profiles");
+    return store.get("profiles");
+  }
+
   try {
     const profiles = store.get("profiles");
     console.log(
@@ -270,6 +276,11 @@ ipcMain.handle("rename-profile", async (event, { oldName, newName }) => {
     // Save the updated profiles
     store.set("profiles", profilesCopy);
     console.log("Saved updated profiles");
+
+    // Send notification about profile update to any listening windows
+    if (mainWindow) {
+      mainWindow.webContents.send("profiles-updated");
+    }
 
     // If this is the active profile, update the active profile name
     if (store.get("activeProfile") === oldName) {

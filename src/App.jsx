@@ -1,7 +1,3 @@
-const [showConfirmRestoreModal, setShowConfirmRestoreModal] = useState(false);
-const [showConfirmRemoveModal, setShowConfirmRemoveModal] = useState(false);
-const [confirmAction, setConfirmAction] = useState(null);
-const [confirmMessage, setConfirmMessage] = useState("");
 import { useState, useEffect } from "react";
 import ProfileSelector from "./components/ProfileSelector";
 import ServerMasterList from "./components/ServerMasterList";
@@ -17,6 +13,10 @@ import {
 import "./styles/index.css";
 
 const App = () => {
+  const [showConfirmRestoreModal, setShowConfirmRestoreModal] = useState(false);
+  const [showConfirmRemoveModal, setShowConfirmRemoveModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState("");
   const [serverMasterList, setServerMasterList] = useState({});
   const [profiles, setProfiles] = useState([]);
   const [activeProfile, setActiveProfile] = useState("");
@@ -96,69 +96,47 @@ const App = () => {
   };
 
   // Handle renaming a profile
-  const handleRenameProfile = async (oldName, newName) => {
-    console.log("handleRenameProfile called with:", oldName, newName);
+  const handleRenameProfile = async (params) => {
+    // Ensure params have the correct format
+    let oldName, newName;
 
-    // Validate inputs
-    if (!oldName) {
-      console.error("Cannot rename with empty old name");
-      await window.api.safeAlert("Cannot rename with empty old name");
-      return;
+    if (typeof params === "object" && params.oldName && params.newName) {
+      oldName = params.oldName;
+      newName = params.newName;
+    } else if (typeof params === "string" && typeof arguments[1] === "string") {
+      // Handle legacy format with separate arguments
+      oldName = params;
+      newName = arguments[1];
+      console.warn(
+        "Deprecated: handleRenameProfile now expects an object with oldName and newName properties",
+      );
+    } else {
+      console.error("Invalid parameters for handleRenameProfile:", params);
+      throw new Error("Invalid parameters for profile rename");
     }
 
-    // Ensure newName is trimmed
-    newName = newName.trim();
-
-    if (!newName) {
-      console.error("Cannot rename to empty name");
-      await window.api.safeAlert("Profile name cannot be empty");
-      return;
-    }
-
-    // Early return for no change (with success message)
-    if (newName === oldName) {
-      console.log("No change in name, considering this successful");
-      return; // No change, but not an error
-    }
-
-    console.log("Proceeding with rename from", oldName, "to", newName);
+    console.log("handleRenameProfile called with:", { oldName, newName });
 
     try {
-      // Check if the new name already exists (case insensitive)
-      if (
-        profiles.some((p) => p.name.toLowerCase() === newName.toLowerCase())
-      ) {
-        console.error("Profile name already exists");
-        await window.api.safeAlert(
-          `A profile with the name "${newName}" already exists`,
-        );
-        return;
-      }
+      // Call the API with the correct parameter structure
+      const updatedProfiles = await window.api.renameProfile({
+        oldName,
+        newName,
+      });
 
-      // Call the API
-      console.log("Calling renameProfile API");
-      const updatedProfiles = await window.api.renameProfile(oldName, newName);
-      console.log("API call successful, updated profiles:", updatedProfiles);
-
-      // Ensure proper state updates by using the returned profiles
+      // Update state based on returned profiles
       setProfiles([...updatedProfiles]); // Force a new array reference
 
       // Update active profile if it was renamed
       if (activeProfile === oldName) {
-        console.log(
-          "Updating active profile from",
-          activeProfile,
-          "to",
-          newName,
-        );
         setActiveProfile(newName);
       }
 
       console.log("Rename completed successfully");
+      return updatedProfiles;
     } catch (error) {
       console.error("Failed to rename profile:", error);
-      await window.api.safeAlert(error.message || "Failed to rename profile");
-      throw error; // Re-throw to notify the ProfileSelector component
+      throw error; // Re-throw so caller can handle it
     }
   };
 
