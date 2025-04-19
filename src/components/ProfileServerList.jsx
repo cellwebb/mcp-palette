@@ -1,5 +1,6 @@
 import React from "react";
 import { getEffectiveConfig, hasOverrides } from "../utils/helpers";
+import DropdownMenu from "./DropdownMenu";
 
 const ProfileServerList = ({
   profile,
@@ -68,6 +69,51 @@ const ProfileServerList = ({
                   </label>
                   <span>{profileServer.enabled ? "Enabled" : "Disabled"}</span>
                 </div>
+                <DropdownMenu
+                  items={[
+                    {
+                      label: "Edit Overrides",
+                      action: (e) => {
+                        onEditOverrides(serverId);
+                      },
+                      icon: "✏️",
+                    },
+                    {
+                      label: "Remove from Profile",
+                      action: () => {
+                        if (
+                          confirm(
+                            `Remove ${masterData.name} from this profile?`,
+                          )
+                        ) {
+                          onRemoveServer(serverId);
+                        }
+                      },
+                      icon: "🗑️",
+                      type: "danger",
+                    },
+                    {
+                      label: "Copy Config",
+                      action: () => {
+                        const configData = JSON.stringify(
+                          effectiveConfig,
+                          null,
+                          2,
+                        );
+                        navigator.clipboard
+                          .writeText(configData)
+                          .then(() => {
+                            alert(`Server configuration copied to clipboard`);
+                          })
+                          .catch((err) => {
+                            console.error("Failed to copy to clipboard: ", err);
+                            alert("Failed to copy to clipboard");
+                          });
+                      },
+                      icon: "📋",
+                    },
+                  ]}
+                />
               </div>
             </div>
 
@@ -95,29 +141,6 @@ const ProfileServerList = ({
                 >
                   {hasServerOverrides ? "Edit Overrides" : "Add Overrides"}
                 </button>
-
-                {!profileServer.enabled && (
-                  <button
-                    className="remove-server-button"
-                    title="Remove server from profile"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (
-                        confirm(`Remove ${masterData.name} from this profile?`)
-                      ) {
-                        onRemoveServer(serverId);
-                      }
-                    }}
-                    style={{
-                      position: "absolute",
-                      bottom: "10px",
-                      right: "10px",
-                      opacity: 1,
-                    }}
-                  >
-                    🗑️
-                  </button>
-                )}
               </div>
             </div>
           </div>

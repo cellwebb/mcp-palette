@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DropdownMenu from "./DropdownMenu";
 
 const ProfileSelector = ({
   profiles,
@@ -14,6 +15,33 @@ const ProfileSelector = ({
   const handleAddProfile = () => {
     onAddProfile(newProfileName);
     setNewProfileName("");
+  };
+
+  // Helper function to export a profile as JSON file
+  const exportProfile = (profile) => {
+    const dataStr = JSON.stringify(profile, null, 2);
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+
+    const exportFileDefaultName = `${profile.name}-profile.json`;
+
+    const linkElement = document.createElement("a");
+    linkElement.setAttribute("href", dataUri);
+    linkElement.setAttribute("download", exportFileDefaultName);
+    linkElement.click();
+  };
+
+  // Helper function to copy profile data to clipboard
+  const copyToClipboard = (profile) => {
+    const dataStr = JSON.stringify(profile, null, 2);
+    navigator.clipboard
+      .writeText(dataStr)
+      .then(() => {
+        alert(`Profile '${profile.name}' copied to clipboard`);
+      })
+      .catch((err) => {
+        console.error("Failed to copy profile to clipboard: ", err);
+        alert("Failed to copy to clipboard");
+      });
   };
 
   return (
@@ -67,15 +95,26 @@ const ProfileSelector = ({
             <div className="profile-item-header">
               <span>{profile.name}</span>
               {profiles.length > 1 && (
-                <button
-                  className="button button-small button-danger"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteProfile(profile.name);
-                  }}
-                >
-                  Delete
-                </button>
+                <DropdownMenu
+                  items={[
+                    {
+                      label: "Delete",
+                      action: () => onDeleteProfile(profile.name),
+                      icon: "🗑️",
+                      type: "danger",
+                    },
+                    {
+                      label: "Export",
+                      action: () => exportProfile(profile),
+                      icon: "📤",
+                    },
+                    {
+                      label: "Copy to clipboard",
+                      action: () => copyToClipboard(profile),
+                      icon: "📋",
+                    },
+                  ]}
+                />
               )}
             </div>
             <div className="profile-item-info">

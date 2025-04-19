@@ -1,4 +1,5 @@
 import React from "react";
+import DropdownMenu from "./DropdownMenu";
 
 const ServerMasterList = ({
   servers,
@@ -38,24 +39,52 @@ const ServerMasterList = ({
           <div className="server-master-item-header">
             <div className="server-master-item-name">{serverData.name}</div>
             <div className="server-master-item-actions">
-              <button
-                className="button button-info"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewServerJson(serverId);
-                }}
-              >
-                View JSON
-              </button>
-              <button
-                className="button button-danger"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteServer(serverId);
-                }}
-              >
-                Delete
-              </button>
+              <DropdownMenu
+                items={[
+                  {
+                    label: "View JSON",
+                    action: () => onViewServerJson(serverId),
+                    icon: "📑",
+                  },
+                  {
+                    label: "Delete",
+                    action: () => {
+                      if (
+                        confirm(
+                          `Are you sure you want to delete the server "${serverData.name}"?`,
+                        )
+                      ) {
+                        onDeleteServer(serverId);
+                      }
+                    },
+                    icon: "🗑️",
+                    type: "danger",
+                  },
+                  {
+                    label: "Copy to clipboard",
+                    action: () => {
+                      const serverConfig = JSON.stringify(
+                        {
+                          id: serverId,
+                          ...serverData,
+                        },
+                        null,
+                        2,
+                      );
+                      navigator.clipboard
+                        .writeText(serverConfig)
+                        .then(() => {
+                          alert(`Server configuration copied to clipboard`);
+                        })
+                        .catch((err) => {
+                          console.error("Failed to copy to clipboard: ", err);
+                          alert("Failed to copy to clipboard");
+                        });
+                    },
+                    icon: "📋",
+                  },
+                ]}
+              />
             </div>
           </div>
           <div className="server-master-item-details">
