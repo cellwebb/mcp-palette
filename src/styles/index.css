@@ -1,3 +1,16 @@
+/* Read-only badge */
+.readonly-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: normal;
+  color: white;
+  background-color: #6c757d;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
 /* Base styles */
 html,
 body {
@@ -542,6 +555,22 @@ select {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+}
+
+/* Read-only editor styling */
+.json-editor .monaco-editor,
+.json-editor-container textarea {
+  background-color: #f8f9fa;
+  border-left: 3px solid #6c757d !important;
+}
+
+.json-editor .monaco-editor .view-line,
+.json-editor-container textarea {
+  cursor: not-allowed;
+}
+
+.json-editor .monaco-editor .cursor {
+  display: none !important;
 }
 
 .json-editor-header {

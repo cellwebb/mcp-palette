@@ -22,7 +22,10 @@ const ServerJsonViewer = ({ server, serverId, onBack }) => {
   return (
     <div className="server-json-viewer">
       <div className="server-json-header">
-        <h2>Server JSON: {server.name}</h2>
+        <h2>
+          Server JSON: {server.name}{" "}
+          <span className="readonly-badge">🔒 Read-Only</span>
+        </h2>
         <div className="server-json-actions">
           <button className="button button-secondary" onClick={onBack}>
             Back to Form

@@ -626,6 +626,7 @@ const App = () => {
                         2,
                       )}
                       readOnly={true}
+                      isProfileView={true}
                       onViewServerJson={(serverId) => {
                         setSelectedServerMaster(serverId);
                         setViewingServerJson(true);
@@ -682,6 +683,7 @@ const App = () => {
                           2,
                         )}
                         readOnly={true}
+                        isProfileView={false}
                       />
                     </div>
                   ) : isAddingServer || selectedServerMaster ? (
@@ -717,6 +719,7 @@ const App = () => {
                 <JsonEditor
                   json={JSON.stringify(serverMasterList, null, 2)}
                   readOnly={true}
+                  isProfileView={false}
                 />
               )}
             </>

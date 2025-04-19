@@ -2,7 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import MonacoEditor from "react-monaco-editor";
 import * as monaco from "monaco-editor";
 
-const JsonEditor = ({ json, onViewServerJson, onRestoreDefaults }) => {
+const JsonEditor = ({
+  json,
+  onViewServerJson,
+  onRestoreDefaults,
+  isProfileView = true,
+}) => {
   const [editorContent, setEditorContent] = useState(json);
   const [error, setError] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -30,18 +35,6 @@ const JsonEditor = ({ json, onViewServerJson, onRestoreDefaults }) => {
     } catch (err) {
       setError(err.message);
       return false;
-    }
-  };
-
-  // Handle formatting
-  const handleFormat = () => {
-    try {
-      const parsed = JSON.parse(editorContent);
-      const formatted = JSON.stringify(parsed, null, 2);
-      setEditorContent(formatted);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
     }
   };
 
@@ -109,11 +102,25 @@ const JsonEditor = ({ json, onViewServerJson, onRestoreDefaults }) => {
     <div className="json-editor">
       <div className="json-editor-header">
         <div className="json-editor-title">
-          <h2>Executable JSON Configuration</h2>
+          <h2>
+            MCP Configuration JSON{" "}
+            <span className="readonly-badge">🔒 Read-Only</span>
+          </h2>
           <p className="json-editor-subtitle">
-            This view shows only enabled servers with values inherited from the
-            master list and overrides applied. This configuration can be copied
-            but not directly edited.
+            {isProfileView ? (
+              <>
+                This view displays the effective configuration with only enabled
+                servers, showing values inherited from the master list with
+                profile-specific overrides applied. You can copy this JSON but
+                not edit it directly.
+              </>
+            ) : (
+              <>
+                This view displays the complete server master list containing
+                all available server configurations. You can copy this JSON but
+                not edit it directly.
+              </>
+            )}
           </p>
         </div>
         <div className="json-editor-actions">
@@ -123,9 +130,6 @@ const JsonEditor = ({ json, onViewServerJson, onRestoreDefaults }) => {
             title="Copy JSON to clipboard (Ctrl+Shift+C)"
           >
             Copy to Clipboard (Ctrl+Shift+C)
-          </button>
-          <button className="button button-secondary" onClick={handleFormat}>
-            Format
           </button>
           {copySuccess && (
             <span className="copy-success">Copied to clipboard!</span>
