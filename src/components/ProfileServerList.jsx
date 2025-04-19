@@ -72,6 +72,26 @@ const ProfileServerList = ({
                 <DropdownMenu
                   items={[
                     {
+                      label: "Copy JSON to clipboard",
+                      action: () => {
+                        const configData = JSON.stringify(
+                          effectiveConfig,
+                          null,
+                          2,
+                        );
+                        navigator.clipboard
+                          .writeText(configData)
+                          .then(() => {
+                            alert(`Server configuration copied to clipboard`);
+                          })
+                          .catch((err) => {
+                            console.error("Failed to copy to clipboard: ", err);
+                            alert("Failed to copy to clipboard");
+                          });
+                      },
+                      icon: "📋",
+                    },
+                    {
                       label: "Edit Overrides",
                       action: (e) => {
                         onEditOverrides(serverId);
@@ -91,26 +111,6 @@ const ProfileServerList = ({
                       },
                       icon: "🗑️",
                       type: "danger",
-                    },
-                    {
-                      label: "Copy Config",
-                      action: () => {
-                        const configData = JSON.stringify(
-                          effectiveConfig,
-                          null,
-                          2,
-                        );
-                        navigator.clipboard
-                          .writeText(configData)
-                          .then(() => {
-                            alert(`Server configuration copied to clipboard`);
-                          })
-                          .catch((err) => {
-                            console.error("Failed to copy to clipboard: ", err);
-                            alert("Failed to copy to clipboard");
-                          });
-                      },
-                      icon: "📋",
                     },
                   ]}
                 />

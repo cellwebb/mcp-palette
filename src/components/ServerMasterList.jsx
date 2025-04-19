@@ -42,26 +42,7 @@ const ServerMasterList = ({
               <DropdownMenu
                 items={[
                   {
-                    label: "View JSON",
-                    action: () => onViewServerJson(serverId),
-                    icon: "📑",
-                  },
-                  {
-                    label: "Delete",
-                    action: () => {
-                      if (
-                        confirm(
-                          `Are you sure you want to delete the server "${serverData.name}"?`,
-                        )
-                      ) {
-                        onDeleteServer(serverId);
-                      }
-                    },
-                    icon: "🗑️",
-                    type: "danger",
-                  },
-                  {
-                    label: "Copy to clipboard",
+                    label: "Copy JSON to clipboard",
                     action: () => {
                       const serverConfig = JSON.stringify(
                         {
@@ -82,6 +63,25 @@ const ServerMasterList = ({
                         });
                     },
                     icon: "📋",
+                  },
+                  {
+                    label: "View JSON",
+                    action: () => onViewServerJson(serverId),
+                    icon: "📑",
+                  },
+                  {
+                    label: "Delete Server",
+                    action: () => {
+                      if (
+                        confirm(
+                          `Are you sure you want to delete the server "${serverData.name}"?`,
+                        )
+                      ) {
+                        onDeleteServer(serverId);
+                      }
+                    },
+                    icon: "🗑️",
+                    type: "danger",
                   },
                 ]}
               />

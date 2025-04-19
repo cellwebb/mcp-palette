@@ -98,20 +98,20 @@ const ProfileSelector = ({
                 <DropdownMenu
                   items={[
                     {
-                      label: "Delete",
-                      action: () => onDeleteProfile(profile.name),
-                      icon: "🗑️",
-                      type: "danger",
+                      label: "Copy JSON to clipboard",
+                      action: () => copyToClipboard(profile),
+                      icon: "📋",
                     },
                     {
-                      label: "Export",
+                      label: "Export JSON",
                       action: () => exportProfile(profile),
                       icon: "📤",
                     },
                     {
-                      label: "Copy to clipboard",
-                      action: () => copyToClipboard(profile),
-                      icon: "📋",
+                      label: "Delete Profile",
+                      action: () => onDeleteProfile(profile.name),
+                      icon: "🗑️",
+                      type: "danger",
                     },
                   ]}
                 />
