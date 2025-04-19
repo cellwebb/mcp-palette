@@ -446,7 +446,6 @@ select {
 .dropdown-menu-container {
   position: relative;
   display: inline-block;
-  z-index: 100;
 }
 
 .dropdown-menu-trigger {
@@ -469,16 +468,18 @@ select {
   background-color: rgba(0, 0, 0, 0.12);
 }
 
+.dropdown-menu-portal {
+  position: fixed;
+  z-index: 9999;
+}
+
 .dropdown-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 1000;
+  position: relative;
   min-width: 180px;
   background-color: white;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
   padding: 5px 0;
 }
 
@@ -487,6 +488,7 @@ select {
   cursor: pointer;
   display: flex;
   align-items: center;
+  background-color: white;
 }
 
 .dropdown-menu-item:hover {

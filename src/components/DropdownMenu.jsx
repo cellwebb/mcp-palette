@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import KebabIcon from "./KebabIcon";
 
 /**
@@ -9,6 +10,7 @@ import KebabIcon from "./KebabIcon";
 const DropdownMenu = ({ items }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -27,6 +29,16 @@ const DropdownMenu = ({ items }) => {
   // Toggle menu open/closed
   const toggleMenu = (e) => {
     e.stopPropagation();
+
+    if (!isOpen && menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom,
+        left: rect.left,
+        right: window.innerWidth - rect.right,
+      });
+    }
+
     setIsOpen(!isOpen);
   };
 
@@ -47,22 +59,36 @@ const DropdownMenu = ({ items }) => {
       >
         <KebabIcon />
       </button>
-      {isOpen && (
-        <div className="dropdown-menu">
-          {items.map((item, index) => (
-            <div
-              key={index}
-              className={`dropdown-menu-item ${item.type || ""}`}
-              onClick={(e) => handleItemClick(e, item.action)}
-            >
-              {item.icon && (
-                <span className="dropdown-menu-item-icon">{item.icon}</span>
-              )}
-              <span className="dropdown-menu-item-label">{item.label}</span>
+
+      {/* Render dropdown using Portal to escape stacking context issues */}
+      {isOpen &&
+        createPortal(
+          <div
+            className="dropdown-menu-portal"
+            style={{
+              position: "fixed",
+              top: `${menuPosition.top}px`,
+              right: `${menuPosition.right}px`,
+              zIndex: 9999,
+            }}
+          >
+            <div className="dropdown-menu">
+              {items.map((item, index) => (
+                <div
+                  key={index}
+                  className={`dropdown-menu-item ${item.type || ""}`}
+                  onClick={(e) => handleItemClick(e, item.action)}
+                >
+                  {item.icon && (
+                    <span className="dropdown-menu-item-icon">{item.icon}</span>
+                  )}
+                  <span className="dropdown-menu-item-label">{item.label}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };
