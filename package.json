@@ -14,7 +14,8 @@
     "electron:preview": "vite build && electron .",
     "postinstall": "node chmod.js",
     "make-executable": "node chmod.js",
-    "fix": "node chmod.js && ./fix-and-rebuild.sh"
+    "fix": "node chmod.js && ./fix-and-rebuild.sh",
+    "fix-enter": "node chmod.js && ./fix-enter-key.sh"
   },
   "dependencies": {
     "electron-store": "^8.1.0",

@@ -177,32 +177,42 @@ const ProfileSelector = ({
 
       {isAddingProfile && (
         <div className="profile-form">
-          <input
-            type="text"
-            placeholder="Profile Name"
-            value={newProfileName}
-            onChange={(e) => setNewProfileName(e.target.value)}
-            autoFocus
-          />
-          <div className="profile-form-actions">
-            <button
-              className="button button-primary"
-              onClick={handleAddProfile}
-              disabled={!newProfileName.trim() || operationInProgress}
-            >
-              Save
-            </button>
-            <button
-              className="button button-secondary"
-              onClick={() => {
-                setIsAddingProfile(false);
-                setNewProfileName("");
-              }}
-              disabled={operationInProgress}
-            >
-              Cancel
-            </button>
-          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (newProfileName.trim() && !operationInProgress) {
+                handleAddProfile();
+              }
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Profile Name"
+              value={newProfileName}
+              onChange={(e) => setNewProfileName(e.target.value)}
+              autoFocus
+            />
+            <div className="profile-form-actions">
+              <button
+                type="submit"
+                className="button button-primary"
+                disabled={!newProfileName.trim() || operationInProgress}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => {
+                  setIsAddingProfile(false);
+                  setNewProfileName("");
+                }}
+                disabled={operationInProgress}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

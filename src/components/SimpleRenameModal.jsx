@@ -114,6 +114,14 @@ const SimpleRenameModal = ({
     }
   };
 
+  // Function to handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!isSubmitting && newName.trim() && newName.trim() !== profileName) {
+      processRename();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -162,87 +170,88 @@ const SimpleRenameModal = ({
           </div>
         )}
 
-        <div className="modal-body" style={{ margin: "15px 0" }}>
-          <input
-            id="simple-rename-input"
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Enter new name"
-            style={{
-              width: "100%",
-              padding: "8px",
-              fontSize: "16px",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !isSubmitting) {
-                e.preventDefault();
-                processRename();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                onCancel();
-              }
-            }}
-          />
-        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body" style={{ margin: "15px 0" }}>
+            <input
+              id="simple-rename-input"
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Enter new name"
+              style={{
+                width: "100%",
+                padding: "8px",
+                fontSize: "16px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  onCancel();
+                }
+              }}
+              autoFocus
+            />
+          </div>
 
-        <div
-          className="modal-actions"
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "10px",
-          }}
-        >
-          <button
-            type="button"
-            className="button button-secondary"
-            onClick={onCancel}
-            disabled={isSubmitting}
+          <div
+            className="modal-actions"
             style={{
-              padding: "8px 16px",
-              backgroundColor: "#6c757d",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: isSubmitting ? "not-allowed" : "pointer",
-              opacity: isSubmitting ? 0.7 : 1,
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "10px",
             }}
           >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="button button-primary"
-            onClick={processRename}
-            disabled={
-              isSubmitting || !newName.trim() || newName.trim() === profileName
-            }
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "#007bff",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor:
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#6c757d",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: isSubmitting ? "not-allowed" : "pointer",
+                opacity: isSubmitting ? 0.7 : 1,
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button button-primary"
+              disabled={
                 isSubmitting ||
                 !newName.trim() ||
                 newName.trim() === profileName
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                isSubmitting ||
-                !newName.trim() ||
-                newName.trim() === profileName
-                  ? 0.7
-                  : 1,
-            }}
-          >
-            {isSubmitting ? "Saving..." : "Rename"}
-          </button>
-        </div>
+              }
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#007bff",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor:
+                  isSubmitting ||
+                  !newName.trim() ||
+                  newName.trim() === profileName
+                    ? "not-allowed"
+                    : "pointer",
+                opacity:
+                  isSubmitting ||
+                  !newName.trim() ||
+                  newName.trim() === profileName
+                    ? 0.7
+                    : 1,
+              }}
+            >
+              {isSubmitting ? "Saving..." : "Rename"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
