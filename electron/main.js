@@ -207,6 +207,38 @@ ipcMain.handle(
   },
 );
 
+ipcMain.handle("rename-profile", async (event, { oldName, newName }) => {
+  if (!newName || newName.trim() === "") {
+    throw new Error("New profile name cannot be empty");
+  }
+
+  const profiles = store.get("profiles");
+
+  // Check if the new name already exists
+  if (profiles.some((p) => p.name === newName)) {
+    throw new Error(`A profile with the name "${newName}" already exists`);
+  }
+
+  // Find the profile with the old name
+  const index = profiles.findIndex((p) => p.name === oldName);
+  if (index === -1) {
+    throw new Error(`Profile "${oldName}" not found`);
+  }
+
+  // Update the profile name
+  profiles[index].name = newName;
+
+  // Save the updated profiles
+  store.set("profiles", profiles);
+
+  // If this is the active profile, update the active profile name
+  if (store.get("activeProfile") === oldName) {
+    store.set("activeProfile", newName);
+  }
+
+  return profiles;
+});
+
 ipcMain.handle("delete-profile", async (event, profileName) => {
   let profiles = store.get("profiles");
   profiles = profiles.filter((p) => p.name !== profileName);

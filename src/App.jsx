@@ -91,6 +91,30 @@ const App = () => {
     }
   };
 
+  // Handle renaming a profile
+  const handleRenameProfile = async (profileName) => {
+    const newName = prompt("Enter new profile name:", profileName);
+
+    if (!newName || newName === profileName) {
+      return; // User cancelled or didn't change the name
+    }
+
+    try {
+      const updatedProfiles = await window.api.renameProfile(
+        profileName,
+        newName,
+      );
+      setProfiles(updatedProfiles);
+
+      // Update active profile if it was renamed
+      const newActiveProfile = await window.api.getActiveProfile();
+      setActiveProfile(newActiveProfile);
+    } catch (error) {
+      console.error("Failed to rename profile:", error);
+      alert(error.message || "Failed to rename profile");
+    }
+  };
+
   // Handle deleting a profile
   const handleDeleteProfile = async (profileName) => {
     if (
@@ -524,6 +548,7 @@ const App = () => {
               activeProfile={activeProfile}
               onProfileSelect={handleProfileSelect}
               onAddProfile={handleAddProfile}
+              onRenameProfile={handleRenameProfile}
               onDeleteProfile={handleDeleteProfile}
               isAddingProfile={isAddingProfile}
               setIsAddingProfile={setIsAddingProfile}

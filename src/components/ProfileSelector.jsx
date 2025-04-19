@@ -6,6 +6,7 @@ const ProfileSelector = ({
   activeProfile,
   onProfileSelect,
   onAddProfile,
+  onRenameProfile,
   onDeleteProfile,
   isAddingProfile,
   setIsAddingProfile,
@@ -106,6 +107,11 @@ const ProfileSelector = ({
                       label: "Export JSON",
                       action: () => exportProfile(profile),
                       icon: "📤",
+                    },
+                    {
+                      label: "Rename Profile",
+                      action: () => onRenameProfile(profile.name),
+                      icon: "✏️",
                     },
                     {
                       label: "Delete Profile",

@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld("api", {
   addProfile: (profile) => ipcRenderer.invoke("add-profile", profile),
   updateProfile: (profileName, updatedProfile) =>
     ipcRenderer.invoke("update-profile", { profileName, updatedProfile }),
+  renameProfile: (oldName, newName) =>
+    ipcRenderer.invoke("rename-profile", { oldName, newName }),
   deleteProfile: (profileName) =>
     ipcRenderer.invoke("delete-profile", profileName),
 
