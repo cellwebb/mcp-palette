@@ -131,10 +131,13 @@ const JsonEditor = ({
           >
             Copy to Clipboard (Ctrl+Shift+C)
           </button>
-          {copySuccess && (
-            <span className="copy-success">Copied to clipboard!</span>
-          )}
         </div>
+
+        {copySuccess && (
+          <div className="copy-success-container">
+            <span className="copy-success">Copied to clipboard!</span>
+          </div>
+        )}
       </div>
 
       {error && (

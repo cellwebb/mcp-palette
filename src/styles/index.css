@@ -602,25 +602,23 @@ select {
   align-items: center;
 }
 
-.copy-success {
-  color: #28a745;
-  font-weight: bold;
-  animation: fadeInOut 2s ease-in-out;
-  margin-left: 10px;
+.copy-success-container {
+  margin-top: 5px;
+  margin-bottom: 10px;
 }
 
-@keyframes fadeInOut {
+.copy-success {
+  color: #666;
+  font-size: 14px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
   0% {
     opacity: 0;
   }
-  20% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 1;
-  }
   100% {
-    opacity: 0;
+    opacity: 1;
   }
 }
 
