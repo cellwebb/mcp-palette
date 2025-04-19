@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About MCP Manager</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      h1 {
+        color: #333;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+      }
+      h2 {
+        color: #444;
+        margin-top: 20px;
+      }
+      a {
+        color: #007bff;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .footer {
+        margin-top: 30px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+        font-size: 0.9em;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>About MCP Manager</h1>
+
+    <p>
+      MCP Manager is a desktop application for managing and configuring Model
+      Context Protocol (MCP) servers.
+    </p>
+
+    <h2>What is MCP?</h2>
+    <p>
+      The Model Context Protocol (MCP) is a standardized protocol for
+      communication between AI systems and external tools. It enables AI models
+      to interact with various resources such as file systems, memory stores,
+      web browsers, and specialized computation engines.
+    </p>
+
+    <h2>Features</h2>
+    <ul>
+      <li>
+        <strong>Server Master List:</strong> Maintain a central repository of
+        all available MCP servers
+      </li>
+      <li>
+        <strong>Profiles:</strong> Create and manage different server
+        configurations for various use cases
+      </li>
+      <li>
+        <strong>Overrides:</strong> Customize specific server settings within
+        individual profiles
+      </li>
+      <li>
+        <strong>Import/Export:</strong> Share configurations between machines
+      </li>
+    </ul>
+
+    <h2>Project Architecture</h2>
+    <p>
+      This application is built with Electron and React, using Vite as the build
+      tool. The architecture follows a master-server-profile model where server
+      configurations are defined once in the Master List, then referenced and
+      optionally overridden in specific profiles.
+    </p>
+
+    <div class="footer">
+      <p>MCP Manager &copy; 2025 - MIT License</p>
+      <p>Built with Electron, React, and Vite</p>
+    </div>
+  </body>
+</html>
