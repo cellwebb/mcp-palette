@@ -2,10 +2,10 @@ import React, { useEffect } from "react";
 import JsonEditor from "./JsonEditor";
 
 const ServerJsonViewer = ({ server, serverId, onBack }) => {
-  // Format server object for JSON display
+  // Format server object for JSON display - exclude id field
   const serverJson = {
-    id: serverId,
     ...server,
+    // Exclude the internal id field from the display
   };
 
   // Automatically focus on the JSON content when the component mounts

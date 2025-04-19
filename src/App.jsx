@@ -676,7 +676,7 @@ const App = () => {
                       <JsonEditor
                         json={JSON.stringify(
                           {
-                            id: selectedServerMaster,
+                            // Exclude the internal id field
                             ...serverMasterList[selectedServerMaster],
                           },
                           null,

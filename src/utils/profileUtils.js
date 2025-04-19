@@ -41,6 +41,11 @@ export const generateFinalProfileConfig = (profile, masterServers) => {
       applyOverrides(serverConfig, profileServer.overrides);
     }
 
+    // Remove internal implementation details
+    if ("id" in serverConfig) {
+      delete serverConfig.id;
+    }
+
     // Add to final configuration
     finalConfig.servers[serverId] = serverConfig;
   });
