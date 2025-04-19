@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 
-const MasterServerForm = ({ server, serverId, onSave, onCancel }) => {
+const MasterServerForm = ({
+  server,
+  serverId,
+  onSave,
+  onCancel,
+  onViewJson,
+}) => {
   const [formData, setFormData] = useState({
     id: "",
     name: "",
@@ -261,6 +267,15 @@ const MasterServerForm = ({ server, serverId, onSave, onCancel }) => {
           >
             Cancel
           </button>
+          {server && (
+            <button
+              type="button"
+              className="button button-info"
+              onClick={onViewJson}
+            >
+              View JSON
+            </button>
+          )}
         </div>
       </form>
     </div>

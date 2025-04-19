@@ -422,6 +422,18 @@ select {
   text-decoration: underline;
 }
 
+/* Server JSON Viewer */
+.server-json-viewer {
+  width: 100%;
+}
+
+.server-json-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
 /* JSON Editor */
 .json-editor {
   display: flex;
@@ -514,6 +526,15 @@ select {
 
 .button-danger:hover {
   background-color: #c82333;
+}
+
+.button-info {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.button-info:hover {
+  background-color: #138496;
 }
 
 /* Code block styling */

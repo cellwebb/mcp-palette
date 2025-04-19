@@ -6,6 +6,7 @@ const ServerMasterList = ({
   onSelectServer,
   onAddServer,
   onDeleteServer,
+  onViewServerJson,
 }) => {
   if (!servers || Object.keys(servers).length === 0) {
     return (
@@ -37,6 +38,15 @@ const ServerMasterList = ({
           <div className="server-master-item-header">
             <div className="server-master-item-name">{serverData.name}</div>
             <div className="server-master-item-actions">
+              <button
+                className="button button-info"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewServerJson(serverId);
+                }}
+              >
+                View JSON
+              </button>
               <button
                 className="button button-danger"
                 onClick={(e) => {

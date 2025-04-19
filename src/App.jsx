@@ -16,6 +16,7 @@ const App = () => {
   const [selectedServerMaster, setSelectedServerMaster] = useState(null);
   const [selectedProfileServer, setSelectedProfileServer] = useState(null);
   const [editMode, setEditMode] = useState("form"); // 'form' or 'json'
+  const [viewingServerJson, setViewingServerJson] = useState(false); // New state for JSON viewer
   const [isAddingServer, setIsAddingServer] = useState(false);
   const [isAddingProfile, setIsAddingProfile] = useState(false);
   const [isEditingOverrides, setIsEditingOverrides] = useState(false);
@@ -521,6 +522,10 @@ const App = () => {
                     <JsonEditor
                       json={JSON.stringify(currentProfile, null, 2)}
                       onSave={handleJsonEdit}
+                      onViewServerJson={(serverId) => {
+                        setSelectedServerMaster(serverId);
+                        setViewingServerJson(true);
+                      }}
                     />
                   )}
                 </>
@@ -546,7 +551,35 @@ const App = () => {
 
               {editMode === "form" ? (
                 <>
-                  {isAddingServer || selectedServerMaster ? (
+                  {viewingServerJson && selectedServerMaster ? (
+                    // View individual server JSON
+                    <div className="server-json-viewer">
+                      <div className="server-json-header">
+                        <h2>
+                          Server JSON:{" "}
+                          {serverMasterList[selectedServerMaster].name}
+                        </h2>
+                        <button
+                          className="button button-secondary"
+                          onClick={() => setViewingServerJson(false)}
+                        >
+                          Back to Form
+                        </button>
+                      </div>
+
+                      <JsonEditor
+                        json={JSON.stringify(
+                          {
+                            id: selectedServerMaster,
+                            ...serverMasterList[selectedServerMaster],
+                          },
+                          null,
+                          2,
+                        )}
+                        readOnly={true}
+                      />
+                    </div>
+                  ) : isAddingServer || selectedServerMaster ? (
                     <MasterServerForm
                       server={
                         selectedServerMaster
@@ -559,6 +592,7 @@ const App = () => {
                         setIsAddingServer(false);
                         setSelectedServerMaster(null);
                       }}
+                      onViewJson={() => setViewingServerJson(true)}
                     />
                   ) : (
                     <ServerMasterList
@@ -567,12 +601,17 @@ const App = () => {
                       onSelectServer={setSelectedServerMaster}
                       onAddServer={handleAddMasterServer}
                       onDeleteServer={handleDeleteMasterServer}
+                      onViewServerJson={(serverId) => {
+                        setSelectedServerMaster(serverId);
+                        setViewingServerJson(true);
+                      }}
                     />
                   )}
                 </>
               ) : (
                 <JsonEditor
                   json={JSON.stringify(serverMasterList, null, 2)}
+                  readOnly={true}
                   onSave={handleJsonEdit}
                 />
               )}

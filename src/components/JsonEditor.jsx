@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import MonacoEditor from "react-monaco-editor";
 
-const JsonEditor = ({ json, onSave }) => {
+const JsonEditor = ({ json, onSave, readOnly = false }) => {
   const [editorContent, setEditorContent] = useState(json);
   const [error, setError] = useState(null);
 
@@ -45,7 +45,7 @@ const JsonEditor = ({ json, onSave }) => {
   const editorOptions = {
     selectOnLineNumbers: true,
     roundedSelection: false,
-    readOnly: false,
+    readOnly: readOnly,
     cursorStyle: "line",
     automaticLayout: true,
   };
@@ -56,9 +56,12 @@ const JsonEditor = ({ json, onSave }) => {
       className="json-editor-container"
       value={editorContent}
       onChange={(e) => {
-        setEditorContent(e.target.value);
-        validateJson(e.target.value);
+        if (!readOnly) {
+          setEditorContent(e.target.value);
+          validateJson(e.target.value);
+        }
       }}
+      readOnly={readOnly}
       style={{
         fontFamily: "monospace",
         fontSize: "14px",
@@ -73,18 +76,20 @@ const JsonEditor = ({ json, onSave }) => {
   return (
     <div className="json-editor">
       <div className="json-editor-header">
-        <h2>Edit JSON Configuration</h2>
+        <h2>{readOnly ? "JSON Configuration" : "Edit JSON Configuration"}</h2>
         <div className="json-editor-actions">
           <button className="button button-secondary" onClick={handleFormat}>
             Format
           </button>
-          <button
-            className="button button-primary"
-            onClick={handleSave}
-            disabled={!!error}
-          >
-            Save
-          </button>
+          {!readOnly && (
+            <button
+              className="button button-primary"
+              onClick={handleSave}
+              disabled={!!error}
+            >
+              Save
+            </button>
+          )}
         </div>
       </div>
 
@@ -105,8 +110,10 @@ const JsonEditor = ({ json, onSave }) => {
             value={editorContent}
             options={editorOptions}
             onChange={(value) => {
-              setEditorContent(value);
-              validateJson(value);
+              if (!readOnly) {
+                setEditorContent(value);
+                validateJson(value);
+              }
             }}
           />
         ) : (
