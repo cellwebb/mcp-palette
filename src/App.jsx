@@ -486,7 +486,8 @@ const App = () => {
         />
       )}
       <header className="header">
-        <h1>MCP Server Manager</h1>
+        <h1>MCP Palette</h1>
+        <h2 className="subtitle">MCP Server Configuration Manager</h2>
       </header>
 
       <div className="tabs">
