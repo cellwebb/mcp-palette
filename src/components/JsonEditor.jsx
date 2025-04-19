@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import MonacoEditor from "react-monaco-editor";
 import * as monaco from "monaco-editor";
 
-const JsonEditor = ({ json, onSave, readOnly = false }) => {
+const JsonEditor = ({ json, onViewServerJson, onRestoreDefaults }) => {
   const [editorContent, setEditorContent] = useState(json);
   const [error, setError] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -30,13 +30,6 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
     } catch (err) {
       setError(err.message);
       return false;
-    }
-  };
-
-  // Handle save
-  const handleSave = () => {
-    if (validateJson(editorContent)) {
-      onSave(editorContent);
     }
   };
 
@@ -81,7 +74,7 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
   const editorOptions = {
     selectOnLineNumbers: true,
     roundedSelection: false,
-    readOnly: readOnly,
+    readOnly: true, // Always read-only for executable config
     cursorStyle: "line",
     automaticLayout: true,
     lineNumbers: "on",
@@ -97,13 +90,7 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
     <textarea
       className="json-editor-container"
       value={editorContent}
-      onChange={(e) => {
-        if (!readOnly) {
-          setEditorContent(e.target.value);
-          validateJson(e.target.value);
-        }
-      }}
-      readOnly={readOnly}
+      readOnly={true}
       style={{
         fontFamily: "monospace",
         fontSize: "14px",
@@ -121,7 +108,14 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
   return (
     <div className="json-editor">
       <div className="json-editor-header">
-        <h2>{readOnly ? "JSON Configuration" : "Edit JSON Configuration"}</h2>
+        <div className="json-editor-title">
+          <h2>Executable JSON Configuration</h2>
+          <p className="json-editor-subtitle">
+            This view shows only enabled servers with values inherited from the
+            master list and overrides applied. This configuration can be copied
+            but not directly edited.
+          </p>
+        </div>
         <div className="json-editor-actions">
           <button
             className="button button-info"
@@ -133,15 +127,6 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
           <button className="button button-secondary" onClick={handleFormat}>
             Format
           </button>
-          {!readOnly && (
-            <button
-              className="button button-primary"
-              onClick={handleSave}
-              disabled={!!error}
-            >
-              Save
-            </button>
-          )}
           {copySuccess && (
             <span className="copy-success">Copied to clipboard!</span>
           )}
@@ -165,10 +150,7 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
             value={editorContent}
             options={editorOptions}
             onChange={(value) => {
-              if (!readOnly) {
-                setEditorContent(value);
-                validateJson(value);
-              }
+              // No-op since it's read-only
             }}
             editorDidMount={handleEditorDidMount}
           />

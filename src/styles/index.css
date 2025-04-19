@@ -547,8 +547,24 @@ select {
 .json-editor-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 15px;
+}
+
+.json-editor-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.json-editor-title h2 {
+  margin: 0 0 5px 0;
+}
+
+.json-editor-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+  max-width: 600px;
 }
 
 .json-editor-actions {

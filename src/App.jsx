@@ -6,6 +6,10 @@ import MasterServerForm from "./components/MasterServerForm";
 import ProfileServerOverridesForm from "./components/ProfileServerOverridesForm";
 import JsonEditor from "./components/JsonEditor";
 import ServerSelectionModal from "./components/ServerSelectionModal";
+import {
+  generateFinalProfileConfig,
+  convertFinalConfigToInternal,
+} from "./utils/profileUtils";
 import "./styles/index.css";
 
 const App = () => {
@@ -449,10 +453,17 @@ const App = () => {
       const parsedData = JSON.parse(jsonData);
 
       if (activePage === "profiles") {
-        // Update the current profile
+        // Convert the final (user-facing) format back to internal format
+        const updatedProfile = convertFinalConfigToInternal(
+          parsedData,
+          currentProfile,
+          serverMasterList,
+        );
+
+        // Update the profile
         const updatedProfiles = await window.api.updateProfile(
           activeProfile,
-          parsedData,
+          updatedProfile,
         );
         setProfiles(updatedProfiles);
       } else {
@@ -606,8 +617,15 @@ const App = () => {
                     </>
                   ) : (
                     <JsonEditor
-                      json={JSON.stringify(currentProfile, null, 2)}
-                      onSave={handleJsonEdit}
+                      json={JSON.stringify(
+                        generateFinalProfileConfig(
+                          currentProfile,
+                          serverMasterList,
+                        ),
+                        null,
+                        2,
+                      )}
+                      readOnly={true}
                       onViewServerJson={(serverId) => {
                         setSelectedServerMaster(serverId);
                         setViewingServerJson(true);
@@ -699,7 +717,6 @@ const App = () => {
                 <JsonEditor
                   json={JSON.stringify(serverMasterList, null, 2)}
                   readOnly={true}
-                  onSave={handleJsonEdit}
                 />
               )}
             </>
