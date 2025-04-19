@@ -29,7 +29,7 @@ const ProfileServerOverridesForm = ({
   // Initialize form data when inputs change
   useEffect(() => {
     if (masterServer && profileServer) {
-      // Start with master values
+      // Start with master list values
       setFormData({
         name: masterServer.name || "",
         command: masterServer.command || "",
@@ -81,7 +81,7 @@ const ProfileServerOverridesForm = ({
         }
       }
     } else if (masterServer) {
-      // Just use master values
+      // Just use master list values
       setFormData({
         name: masterServer.name || "",
         command: masterServer.command || "",
@@ -106,7 +106,7 @@ const ProfileServerOverridesForm = ({
       [field]: !prev[field],
     }));
 
-    // Reset to master value if turning off override
+    // Reset to master list value if turning off override
     if (overrideFields[field] && masterServer) {
       setFormData((prev) => ({
         ...prev,
@@ -128,7 +128,7 @@ const ProfileServerOverridesForm = ({
       },
     }));
 
-    // Reset to master value if turning off override
+    // Reset to master list value if turning off override
     if (overrideFields.env[key] && masterServer && masterServer.env) {
       setFormData((prev) => ({
         ...prev,
@@ -319,7 +319,7 @@ const ProfileServerOverridesForm = ({
 
             {!overrideFields.name && (
               <div className="inherited-value">
-                Using master value: <strong>{masterServer.name}</strong>
+                Using master list value: <strong>{masterServer.name}</strong>
               </div>
             )}
           </div>
@@ -350,7 +350,7 @@ const ProfileServerOverridesForm = ({
 
             {!overrideFields.command && (
               <div className="inherited-value">
-                Using master value: <strong>{masterServer.command}</strong>
+                Using master list value: <strong>{masterServer.command}</strong>
               </div>
             )}
           </div>
@@ -412,7 +412,7 @@ const ProfileServerOverridesForm = ({
 
             {!overrideFields.args && (
               <div className="inherited-value">
-                Using master values:{" "}
+                Using master list values:{" "}
                 <strong>{(masterServer.args || []).join(" ")}</strong>
               </div>
             )}

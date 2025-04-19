@@ -5,6 +5,7 @@ import {
   filterInternalFields,
 } from "../utils/helpers";
 import DropdownMenu from "./DropdownMenu";
+import ConfirmButton from "./ConfirmButton";
 
 const ProfileServerList = ({
   profile,
@@ -78,7 +79,7 @@ const ProfileServerList = ({
                   items={[
                     {
                       label: "Copy JSON to clipboard",
-                      action: () => {
+                      action: function () {
                         // Filter out internal fields before copying
                         const mcpConfig = filterInternalFields(effectiveConfig);
                         const configData = JSON.stringify(mcpConfig, null, 2);
@@ -92,41 +93,6 @@ const ProfileServerList = ({
                             alert("Failed to copy to clipboard");
                           });
                       },
-                    },
-                    {
-                      label: "Edit Overrides",
-                      action: (e) => {
-                        onEditOverrides(serverId);
-                      },
-                    },
-                    ...(hasServerOverrides
-                      ? [
-                          {
-                            label: "Restore Defaults",
-                            action: () => {
-                              if (
-                                confirm(
-                                  `Restore default configuration for ${masterData.name}? This will remove all customizations.`,
-                                )
-                              ) {
-                                onRestoreDefaults(serverId, profile.name);
-                              }
-                            },
-                          },
-                        ]
-                      : []),
-                    {
-                      label: "Remove from Profile",
-                      action: () => {
-                        if (
-                          confirm(
-                            `Remove ${masterData.name} from this profile?`,
-                          )
-                        ) {
-                          onRemoveServer(serverId);
-                        }
-                      },
-                      type: "danger",
                     },
                   ]}
                 />
@@ -147,7 +113,7 @@ const ProfileServerList = ({
                   </div>
                 )}
 
-              <div style={{ marginTop: "10px" }}>
+              <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
                 <button
                   className="button button-small button-primary"
                   onClick={(e) => {
@@ -157,6 +123,22 @@ const ProfileServerList = ({
                 >
                   {hasServerOverrides ? "Edit Overrides" : "Add Overrides"}
                 </button>
+
+                {hasServerOverrides && (
+                  <ConfirmButton
+                    label="Restore Defaults"
+                    confirmMessage={`Restore default configuration for ${masterData.name}? This will remove all customizations.`}
+                    onConfirm={() => onRestoreDefaults(serverId, profile.name)}
+                    className="button button-small button-secondary"
+                  />
+                )}
+
+                <ConfirmButton
+                  label="Remove"
+                  confirmMessage={`Remove ${masterData.name} from this profile?`}
+                  onConfirm={() => onRemoveServer(serverId)}
+                  className="button button-small button-danger"
+                />
               </div>
             </div>
           </div>

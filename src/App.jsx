@@ -1,3 +1,7 @@
+const [showConfirmRestoreModal, setShowConfirmRestoreModal] = useState(false);
+const [showConfirmRemoveModal, setShowConfirmRemoveModal] = useState(false);
+const [confirmAction, setConfirmAction] = useState(null);
+const [confirmMessage, setConfirmMessage] = useState("");
 import { useState, useEffect } from "react";
 import ProfileSelector from "./components/ProfileSelector";
 import ServerMasterList from "./components/ServerMasterList";
