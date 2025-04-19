@@ -118,8 +118,24 @@ const ProfileSelector = ({
               )}
             </div>
             <div className="profile-item-info">
-              {profile.servers ? Object.keys(profile.servers).length : 0}{" "}
-              servers
+              {(() => {
+                const totalServers = profile.servers
+                  ? Object.keys(profile.servers).length
+                  : 0;
+                if (totalServers === 0) return "0 servers";
+
+                // Count enabled and disabled servers
+                const servers = profile.servers || {};
+                const enabledCount = Object.values(servers).filter(
+                  (server) => server.enabled,
+                ).length;
+                const disabledCount = totalServers - enabledCount;
+
+                // Display format
+                if (disabledCount === 0) return `${enabledCount} enabled`;
+                if (enabledCount === 0) return `${disabledCount} disabled`;
+                return `${enabledCount} enabled, ${disabledCount} disabled`;
+              })()}
             </div>
           </div>
         ))}
