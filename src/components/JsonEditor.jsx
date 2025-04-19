@@ -1,14 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import MonacoEditor from "react-monaco-editor";
+import * as monaco from "monaco-editor";
 
 const JsonEditor = ({ json, onSave, readOnly = false }) => {
   const [editorContent, setEditorContent] = useState(json);
   const [error, setError] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const editorRef = useRef(null);
 
   // Update content when json prop changes
   useEffect(() => {
     setEditorContent(json);
   }, [json]);
+
+  // Clear copy success message after 2 seconds
+  useEffect(() => {
+    if (copySuccess) {
+      const timer = setTimeout(() => setCopySuccess(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copySuccess]);
 
   // Validate JSON content
   const validateJson = (content) => {
@@ -41,6 +52,31 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
     }
   };
 
+  // Copy JSON to clipboard
+  const handleCopyToClipboard = () => {
+    try {
+      // Format JSON properly for copying
+      const jsonToCopy = JSON.stringify(JSON.parse(editorContent), null, 2);
+      navigator.clipboard.writeText(jsonToCopy);
+      setCopySuccess(true);
+    } catch (err) {
+      setError("Failed to copy: Invalid JSON format");
+    }
+  };
+
+  // Handle editor mounting
+  const handleEditorDidMount = (editor) => {
+    editorRef.current = editor;
+
+    // Add keyboard shortcut for copying JSON (Ctrl+Shift+C)
+    editor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_C,
+      () => {
+        handleCopyToClipboard();
+      },
+    );
+  };
+
   // Monaco editor options
   const editorOptions = {
     selectOnLineNumbers: true,
@@ -48,6 +84,12 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
     readOnly: readOnly,
     cursorStyle: "line",
     automaticLayout: true,
+    lineNumbers: "on",
+    minimap: { enabled: true },
+    scrollBeyondLastLine: false,
+    wordWrap: "on",
+    fontSize: 14,
+    fontFamily: "monospace",
   };
 
   // Fallback if Monaco editor can't be loaded
@@ -66,9 +108,12 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
         fontFamily: "monospace",
         fontSize: "14px",
         padding: "10px",
-        resize: "vertical",
+        resize: "none",
         width: "100%",
-        height: "400px",
+        height: "100%",
+        minHeight: "600px",
+        overflowY: "auto",
+        boxSizing: "border-box",
       }}
     />
   );
@@ -78,6 +123,13 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
       <div className="json-editor-header">
         <h2>{readOnly ? "JSON Configuration" : "Edit JSON Configuration"}</h2>
         <div className="json-editor-actions">
+          <button
+            className="button button-info"
+            onClick={handleCopyToClipboard}
+            title="Copy JSON to clipboard (Ctrl+Shift+C)"
+          >
+            Copy to Clipboard (Ctrl+Shift+C)
+          </button>
           <button className="button button-secondary" onClick={handleFormat}>
             Format
           </button>
@@ -89,6 +141,9 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
             >
               Save
             </button>
+          )}
+          {copySuccess && (
+            <span className="copy-success">Copied to clipboard!</span>
           )}
         </div>
       </div>
@@ -104,7 +159,7 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
         {typeof window !== "undefined" ? (
           <MonacoEditor
             width="100%"
-            height="400"
+            height="100%"
             language="json"
             theme="vs-light"
             value={editorContent}
@@ -115,6 +170,7 @@ const JsonEditor = ({ json, onSave, readOnly = false }) => {
                 validateJson(value);
               }
             }}
+            editorDidMount={handleEditorDidMount}
           />
         ) : (
           renderFallbackEditor()
