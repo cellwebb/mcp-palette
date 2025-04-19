@@ -49,6 +49,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Create the icon
+echo "Creating icon..."
+node create-icon-simple.js
+
 # Build the application
 echo "Building MCP Server Manager..."
 npm run build

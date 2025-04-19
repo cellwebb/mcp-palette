@@ -2,8 +2,11 @@ const { app, BrowserWindow, ipcMain, dialog, Menu } = require("electron");
 const { createAppMenu } = require("./menu");
 const path = require("path");
 const fs = require("fs");
-const { store, setupDefaultProfiles, getMergedServerConfig } = require('./store');
-
+const {
+  store,
+  setupDefaultProfiles,
+  getMergedServerConfig,
+} = require("./store");
 
 let mainWindow;
 
@@ -21,12 +24,12 @@ function createWindow() {
   });
 
   // In development mode, load from vite dev server
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:3000');
+  if (process.env.NODE_ENV === "development") {
+    mainWindow.loadURL("http://localhost:3000");
     mainWindow.webContents.openDevTools();
   } else {
     // In production, load the built files
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
   // Wait for the content to load before showing the window
@@ -43,9 +46,9 @@ function createWindow() {
 function setupAppMenu() {
   const menu = createAppMenu({
     setupDefaultProfiles,
-    createUserMcpServersProfile
+    createUserMcpServersProfile,
   });
-  
+
   Menu.setApplicationMenu(menu);
 }
 
@@ -109,7 +112,7 @@ function createUserMcpServersProfile() {
 }
 
 // Set NODE_ENV
-process.env.NODE_ENV = app.isPackaged ? 'production' : 'development';
+process.env.NODE_ENV = app.isPackaged ? "production" : "development";
 
 // App lifecycle
 app.whenReady().then(() => {
@@ -147,7 +150,7 @@ ipcMain.handle(
       store.set("serverMasterList", serverMasterList);
     }
     return serverMasterList;
-  }
+  },
 );
 
 ipcMain.handle("delete-master-server", async (event, serverId) => {
@@ -201,7 +204,7 @@ ipcMain.handle(
     }
 
     return profiles;
-  }
+  },
 );
 
 ipcMain.handle("delete-profile", async (event, profileName) => {
@@ -227,7 +230,7 @@ ipcMain.handle(
     if (!profile) return null;
 
     return getMergedServerConfig(serverId, profile.servers[serverId]);
-  }
+  },
 );
 
 // IPC Handlers for import/export functionality
@@ -293,7 +296,7 @@ ipcMain.handle("import-config", async () => {
                   enabled: true,
                   overrides: {},
                 };
-              }
+              },
             );
           }
 

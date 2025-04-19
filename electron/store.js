@@ -3,60 +3,62 @@
  * to ensure consistent access to the electron-store throughout the app.
  */
 
-const Store = require('electron-store');
-const { app } = require('electron');
+const Store = require("electron-store");
+const { app } = require("electron");
 
 // Define the default schema and configurations
 const schema = {
   serverMasterList: {
-    type: 'object',
-    default: {}
+    type: "object",
+    default: {},
   },
   profiles: {
-    type: 'array',
+    type: "array",
     default: [
       {
-        name: 'Default',
-        servers: {}
-      }
-    ]
+        name: "Default",
+        servers: {},
+      },
+    ],
   },
   activeProfile: {
-    type: 'string',
-    default: 'Default'
-  }
+    type: "string",
+    default: "Default",
+  },
 };
 
 // Create the store instance with defaults
 const store = new Store({
-  name: 'mcp-profiles',
+  name: "mcp-profiles",
   schema,
   migrations: {
     // Add any migrations for future versions here
-    '1.0.0': store => {
+    "1.0.0": (store) => {
       // Example migration from older formats
-      if (!store.has('serverMasterList')) {
+      if (!store.has("serverMasterList")) {
         // Handle legacy format without server master list
-        const profiles = store.get('profiles');
+        const profiles = store.get("profiles");
         if (Array.isArray(profiles)) {
           const serverMasterList = {};
-          
+
           // Extract servers to master list
-          profiles.forEach(profile => {
+          profiles.forEach((profile) => {
             if (profile.servers) {
-              Object.entries(profile.servers).forEach(([serverId, serverConfig]) => {
-                if (!serverMasterList[serverId]) {
-                  serverMasterList[serverId] = serverConfig;
-                }
-              });
+              Object.entries(profile.servers).forEach(
+                ([serverId, serverConfig]) => {
+                  if (!serverMasterList[serverId]) {
+                    serverMasterList[serverId] = serverConfig;
+                  }
+                },
+              );
             }
           });
-          
-          store.set('serverMasterList', serverMasterList);
+
+          store.set("serverMasterList", serverMasterList);
         }
       }
-    }
-  }
+    },
+  },
 });
 
 /**
@@ -65,8 +67,8 @@ const store = new Store({
  */
 function setupDefaultProfiles(force = false) {
   // Only set up defaults if this is the first run or force is true
-  const currentServerMasterList = store.get('serverMasterList');
-  const currentProfiles = store.get('profiles');
+  const currentServerMasterList = store.get("serverMasterList");
+  const currentProfiles = store.get("profiles");
 
   if (
     force ||
@@ -77,34 +79,34 @@ function setupDefaultProfiles(force = false) {
     // Setup default server master list
     const defaultServerMasterList = {
       filesystem: {
-        name: 'filesystem',
-        command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-filesystem'],
+        name: "filesystem",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-filesystem"],
         env: {
-          BASE_DIRS: `${app.getPath('home')}/Documents,${app.getPath('home')}/Downloads`,
+          BASE_DIRS: `${app.getPath("home")}/Documents,${app.getPath("home")}/Downloads`,
         },
       },
       memory: {
-        name: 'memory',
-        command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-memory'],
+        name: "memory",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-memory"],
         env: {
-          MEMORY_FILE_PATH: `${app.getPath('userData')}/.mcp-memory.json`,
+          MEMORY_FILE_PATH: `${app.getPath("userData")}/.mcp-memory.json`,
         },
       },
       puppeteer: {
-        name: 'puppeteer',
-        command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-puppeteer'],
+        name: "puppeteer",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-puppeteer"],
         env: {
           PUPPETEER_LAUNCH_OPTIONS: '{ "headless": false}',
-          ALLOW_DANGEROUS: 'false',
+          ALLOW_DANGEROUS: "false",
         },
       },
-      'sequential-thinking': {
-        name: 'sequential-thinking',
-        command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-sequential-thinking'],
+      "sequential-thinking": {
+        name: "sequential-thinking",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-sequential-thinking"],
         env: {},
       },
     };
@@ -112,11 +114,11 @@ function setupDefaultProfiles(force = false) {
     // Create profiles with server references and optional overrides
     const defaultProfiles = [
       {
-        name: 'Default',
+        name: "Default",
         servers: {},
       },
       {
-        name: 'Basic',
+        name: "Basic",
         servers: {
           filesystem: {
             enabled: true,
@@ -129,7 +131,7 @@ function setupDefaultProfiles(force = false) {
         },
       },
       {
-        name: 'Complete',
+        name: "Complete",
         servers: {
           filesystem: {
             enabled: true,
@@ -143,7 +145,7 @@ function setupDefaultProfiles(force = false) {
             enabled: true,
             overrides: {},
           },
-          'sequential-thinking': {
+          "sequential-thinking": {
             enabled: true,
             overrides: {},
           },
@@ -152,8 +154,8 @@ function setupDefaultProfiles(force = false) {
     ];
 
     // Update store with defaults
-    store.set('serverMasterList', defaultServerMasterList);
-    store.set('profiles', defaultProfiles);
+    store.set("serverMasterList", defaultServerMasterList);
+    store.set("profiles", defaultProfiles);
   }
 }
 
@@ -200,5 +202,5 @@ function getMergedServerConfig(serverId, profileOverrides) {
 module.exports = {
   store,
   setupDefaultProfiles,
-  getMergedServerConfig
+  getMergedServerConfig,
 };
