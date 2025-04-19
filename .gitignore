@@ -24,11 +24,29 @@ dist-ssr
 *.sln
 *.sw?
 
+# Build output
+build/
+
+# Miscellaneous
+*.pid
+*.tgz
+.cache/
+coverage/
+*.tsbuildinfo
+*.orig
+
 # Electron build output
 release/
 *.app
 *.exe
 *.dmg
+
+# Package manager caches
+.npm/
+.yarn/
+
+# Parcel cache
+.parcel-cache/
 
 # Environment variables
 .env

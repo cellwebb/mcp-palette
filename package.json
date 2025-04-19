@@ -10,8 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "concurrently \"cross-env VITE_DEV_SERVER_HOST=localhost VITE_DEV_SERVER_PORT=3000 vite --port 3000\" \"electron .\"",
-    "create-icon": "node create-icon-simple.js",
-    "electron:build": "npm run create-icon && vite build && electron-builder",
+    "minimal-build": "vite build && node minimal-build.js",
     "electron:preview": "vite build && electron .",
     "postinstall": "node chmod.js"
   },
@@ -36,37 +35,12 @@
   "build": {
     "appId": "com.electron.mcp-manager",
     "productName": "MCP Manager",
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
     "files": [
       "dist/**/*",
-      "electron/**/*",
-      "public/**/*"
+      "electron/**/*"
     ],
     "mac": {
-      "category": "public.app-category.developer-tools",
-      "icon": "build/icon.png",
-      "target": [
-        "dmg",
-        "zip"
-      ]
-    },
-    "win": {
-      "icon": "build/icon.png",
-      "target": [
-        "nsis",
-        "portable"
-      ]
-    },
-    "linux": {
-      "icon": "build/icon.png",
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "category": "Development"
+      "target": "dir"
     }
   }
 }

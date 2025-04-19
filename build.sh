@@ -49,9 +49,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Create the icon
-echo "Creating icon..."
-node create-icon-simple.js
+# No longer need to create an icon
+# echo "Creating icon..."
+# node embed-icon.js
 
 # Build the application
 echo "Building MCP Server Manager..."

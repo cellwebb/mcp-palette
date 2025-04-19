@@ -6,7 +6,12 @@ const fs = require("fs");
 const path = require("path");
 
 // Files to make executable
-const scriptsToMakeExecutable = ["start.sh", "build.sh"];
+const scriptsToMakeExecutable = [
+  "start.sh",
+  "build.sh",
+  "clean-build.sh",
+  "simple-build.sh",
+];
 
 // Function to make a file executable
 function makeExecutable(filePath) {
