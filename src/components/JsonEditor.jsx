@@ -124,20 +124,22 @@ const JsonEditor = ({
           </p>
         </div>
         <div className="json-editor-actions">
-          <button
-            className="button button-info"
-            onClick={handleCopyToClipboard}
-            title="Copy JSON to clipboard (Ctrl+Shift+C)"
-          >
-            Copy to Clipboard (Ctrl+Shift+C)
-          </button>
-        </div>
+          <div className="json-editor-actions-container">
+            <button
+              className="button button-info"
+              onClick={handleCopyToClipboard}
+              title="Copy JSON to clipboard (Ctrl+Shift+C)"
+            >
+              Copy to Clipboard (Ctrl+Shift+C)
+            </button>
 
-        {copySuccess && (
-          <div className="copy-success-container">
-            <span className="copy-success">Copied to clipboard!</span>
+            {copySuccess && (
+              <div className="copy-success-container">
+                <span className="copy-success">Copied to clipboard!</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {error && (

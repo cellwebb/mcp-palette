@@ -1,12 +1,10 @@
 import React, { useEffect } from "react";
 import JsonEditor from "./JsonEditor";
+import { filterInternalFields } from "../utils/helpers";
 
 const ServerJsonViewer = ({ server, serverId, onBack }) => {
-  // Format server object for JSON display - exclude id field
-  const serverJson = {
-    ...server,
-    // Exclude the internal id field from the display
-  };
+  // Format server object for JSON display - filter out internal fields
+  const serverJson = filterInternalFields(server);
 
   // Automatically focus on the JSON content when the component mounts
   useEffect(() => {
@@ -23,7 +21,7 @@ const ServerJsonViewer = ({ server, serverId, onBack }) => {
     <div className="server-json-viewer">
       <div className="server-json-header">
         <h2>
-          Server JSON: {server.name}{" "}
+          MCP Configuration JSON: {server.name}{" "}
           <span className="readonly-badge">🔒 Read-Only</span>
         </h2>
         <div className="server-json-actions">

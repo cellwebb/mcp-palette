@@ -28,6 +28,18 @@ export function hasOverrides(overrides) {
   return false;
 }
 
+// Helper function to filter out internal implementation details from MCP configurations
+export function filterInternalFields(serverConfig) {
+  if (!serverConfig) return null;
+
+  const result = { ...serverConfig };
+
+  // Remove internal fields that are not part of MCP specifications
+  delete result.id;
+
+  return result;
+}
+
 // Helper function to get effective server configuration
 export function getEffectiveConfig(masterServer, profileServer) {
   if (!masterServer) return null;
@@ -45,6 +57,9 @@ export function getEffectiveConfig(masterServer, profileServer) {
   }
 
   result.enabled = !!enabled;
+
+  // Remove internal implementation details that are not part of MCP specifications
+  delete result.id;
 
   return result;
 }

@@ -1,5 +1,9 @@
 import React from "react";
-import { getEffectiveConfig, hasOverrides } from "../utils/helpers";
+import {
+  getEffectiveConfig,
+  hasOverrides,
+  filterInternalFields,
+} from "../utils/helpers";
 import DropdownMenu from "./DropdownMenu";
 
 const ProfileServerList = ({
@@ -75,11 +79,9 @@ const ProfileServerList = ({
                     {
                       label: "Copy JSON to clipboard",
                       action: () => {
-                        const configData = JSON.stringify(
-                          effectiveConfig,
-                          null,
-                          2,
-                        );
+                        // Filter out internal fields before copying
+                        const mcpConfig = filterInternalFields(effectiveConfig);
+                        const configData = JSON.stringify(mcpConfig, null, 2);
                         navigator.clipboard
                           .writeText(configData)
                           .then(() => {
@@ -99,19 +101,23 @@ const ProfileServerList = ({
                       },
                       icon: "✏️",
                     },
-                    {
-                      label: "Restore Defaults",
-                      action: () => {
-                        if (
-                          confirm(
-                            `Restore default configuration for ${masterData.name}? This will remove all customizations.`,
-                          )
-                        ) {
-                          onRestoreDefaults(serverId, profile.name);
-                        }
-                      },
-                      icon: "🔄",
-                    },
+                    ...(hasServerOverrides
+                      ? [
+                          {
+                            label: "Restore Defaults",
+                            action: () => {
+                              if (
+                                confirm(
+                                  `Restore default configuration for ${masterData.name}? This will remove all customizations.`,
+                                )
+                              ) {
+                                onRestoreDefaults(serverId, profile.name);
+                              }
+                            },
+                            icon: "🔄",
+                          },
+                        ]
+                      : []),
                     {
                       label: "Remove from Profile",
                       action: () => {

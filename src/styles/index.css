@@ -602,13 +602,19 @@ select {
   align-items: center;
 }
 
+.json-editor-actions-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
 .copy-success-container {
   margin-top: 5px;
   margin-bottom: 10px;
 }
 
 .copy-success {
-  color: #666;
+  color: #666; /* Already gray as required */
   font-size: 14px;
   animation: fadeIn 0.3s ease-in-out;
 }
