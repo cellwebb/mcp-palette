@@ -399,12 +399,6 @@ const App = () => {
         <div className="header-actions">
           <button
             className="button button-secondary"
-            onClick={handleImportConfig}
-          >
-            Import
-          </button>
-          <button
-            className="button button-secondary"
             onClick={handleExportConfig}
           >
             Export
