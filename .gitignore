@@ -126,3 +126,4 @@ ENV/
 .venv/
 
 # End of cleaned .gitignore
+release/
