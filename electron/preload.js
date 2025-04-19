@@ -190,6 +190,11 @@ const safeDialogs = {
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld("api", {
+  // UUID utilities
+  generateUUID: () => ipcRenderer.invoke("generate-uuid"),
+  findServerByOriginalId: (originalId) =>
+    ipcRenderer.invoke("find-server-by-original-id", originalId),
+
   // Server Master List management
   getServerMasterList: () => ipcRenderer.invoke("get-server-master-list"),
   addMasterServer: (serverData) =>
@@ -198,17 +203,17 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("update-master-server", { serverId, updatedServer }),
   deleteMasterServer: (serverId) =>
     ipcRenderer.invoke("delete-master-server", serverId),
-  getEffectiveServerConfig: (serverId, profileName) =>
+  getEffectiveServerConfig: (serverId, profileId) =>
     ipcRenderer.invoke("get-effective-server-config", {
       serverId,
-      profileName,
+      profileId,
     }),
 
   // Profile management
   getProfiles: () => ipcRenderer.invoke("get-profiles"),
   getActiveProfile: () => ipcRenderer.invoke("get-active-profile"),
-  setActiveProfile: (profileName) =>
-    ipcRenderer.invoke("set-active-profile", profileName),
+  setActiveProfile: (profileId) =>
+    ipcRenderer.invoke("set-active-profile", profileId),
   addProfile: (profile) => ipcRenderer.invoke("add-profile", profile),
   updateProfile: (profileName, updatedProfile) =>
     ipcRenderer.invoke("update-profile", { profileName, updatedProfile }),
@@ -220,8 +225,7 @@ contextBridge.exposeInMainWorld("api", {
     }
     return await ipcRenderer.invoke("rename-profile", params);
   },
-  deleteProfile: (profileName) =>
-    ipcRenderer.invoke("delete-profile", profileName),
+  deleteProfile: (profileId) => ipcRenderer.invoke("delete-profile", profileId),
 
   // Import/Export
   exportConfig: () => ipcRenderer.invoke("export-config"),

@@ -2,6 +2,8 @@
  * Utility functions for managing profiles and server configurations
  */
 
+import { generateUUID, isValidUUID } from "./helpers";
+
 /**
  * Generates a final JSON configuration object for a profile.
  * This JSON represents the actual configuration that would be used:
@@ -15,11 +17,15 @@
  */
 export const generateFinalProfileConfig = (profile, masterServers) => {
   if (!profile || !profile.servers || !masterServers) {
-    return { name: profile?.name || "Unknown Profile" };
+    return {
+      id: profile?.id || generateUUID(),
+      name: profile?.name || "Unknown Profile",
+    };
   }
 
   // Create a clean output object
   const finalConfig = {
+    id: profile.id,
     name: profile.name,
     servers: {},
   };
@@ -41,7 +47,7 @@ export const generateFinalProfileConfig = (profile, masterServers) => {
       applyOverrides(serverConfig, profileServer.overrides);
     }
 
-    // Remove internal implementation details
+    // Remove internal implementation details but preserve original ID
     if ("id" in serverConfig) {
       delete serverConfig.id;
     }
@@ -69,6 +75,7 @@ export const convertFinalConfigToInternal = (
 ) => {
   // Create a new profile with existing settings
   const updatedProfile = {
+    id: currentProfile.id || generateUUID(),
     name: finalConfig.name,
     servers: { ...currentProfile.servers }, // Start with current servers
   };
@@ -121,6 +128,11 @@ const calculateOverrides = (masterConfig, targetConfig) => {
     // Skip comparing if the key doesn't exist in master config
     if (!(key in masterConfig)) {
       overrides[key] = value;
+      return;
+    }
+
+    // Skip internal properties like originalId
+    if (key === "originalId") {
       return;
     }
 
@@ -177,4 +189,37 @@ const applyOverrides = (target, overrides) => {
       target[key] = value;
     }
   });
+};
+
+/**
+ * Finds a profile by ID or name in the profiles array
+ * @param {Array} profiles - Array of profile objects
+ * @param {string} identifier - Profile ID or name
+ * @returns {Object|null} The profile object or null if not found
+ */
+export const findProfileByIdOrName = (profiles, identifier) => {
+  if (!profiles || !identifier) return null;
+
+  // Try to find by ID first if it's a UUID
+  if (isValidUUID(identifier)) {
+    const profileById = profiles.find((p) => p.id === identifier);
+    if (profileById) return profileById;
+  }
+
+  // Try to find by name
+  return profiles.find((p) => p.name === identifier) || null;
+};
+
+/**
+ * Gets a server's display name considering originalId
+ * @param {Object} serverConfig - Server configuration object
+ * @returns {string} Display name for the server
+ */
+export const getServerDisplayName = (serverConfig) => {
+  if (!serverConfig) return "Unknown Server";
+
+  if (serverConfig.name) return serverConfig.name;
+  if (serverConfig.originalId) return serverConfig.originalId;
+
+  return "Unnamed Server";
 };

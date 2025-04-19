@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getServerDisplayName } from "../utils/profileUtils";
 
 const ServerSelectionModal = ({
   show,
@@ -17,7 +18,7 @@ const ServerSelectionModal = ({
     }));
   };
 
-  const handleAddSelectedServers = () => {
+  const handleAddSelectedServers = async () => {
     // Get list of selected server IDs
     const serverIds = Object.entries(selectedServers)
       .filter(([_, isSelected]) => isSelected)
@@ -25,6 +26,14 @@ const ServerSelectionModal = ({
 
     // Add each selected server to the profile
     if (serverIds.length > 0) {
+      // Show a confirmation for multiple servers
+      if (serverIds.length > 1) {
+        const confirmed = await window.api.safeConfirm(
+          `Add ${serverIds.length} servers to your profile?`,
+        );
+        if (!confirmed) return;
+      }
+
       serverIds.forEach((serverId) => {
         onAddServer(serverId);
       });
@@ -32,7 +41,7 @@ const ServerSelectionModal = ({
       // Close the modal
       onClose();
     } else {
-      alert("Please select at least one server to add.");
+      await window.api.safeAlert("Please select at least one server to add.");
     }
   };
 
@@ -56,24 +65,33 @@ const ServerSelectionModal = ({
             <>
               <p>Select servers to add to your profile:</p>
               {Object.entries(serverMasterList).map(
-                ([serverId, serverData]) => (
-                  <div key={serverId} className="server-selection-item">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={selectedServers[serverId] || false}
-                        onChange={() => handleToggleServer(serverId)}
-                      />
-                      <span className="server-name">{serverData.name}</span>
-                      <span className="server-details">
-                        <code>
-                          {serverData.command}{" "}
-                          {(serverData.args || []).join(" ")}
-                        </code>
-                      </span>
-                    </label>
-                  </div>
-                ),
+                ([serverId, serverData]) => {
+                  const serverName = getServerDisplayName(serverData);
+                  return (
+                    <div key={serverId} className="server-selection-item">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={selectedServers[serverId] || false}
+                          onChange={() => handleToggleServer(serverId)}
+                        />
+                        <span className="server-name">{serverName}</span>
+                        <span className="server-details">
+                          <code>
+                            {serverData.command}{" "}
+                            {(serverData.args || []).join(" ")}
+                          </code>
+                        </span>
+                      </label>
+                      {serverData.originalId &&
+                        serverData.originalId !== serverName && (
+                          <div className="server-original-id">
+                            <small>Original ID: {serverData.originalId}</small>
+                          </div>
+                        )}
+                    </div>
+                  );
+                },
               )}
             </>
           )}

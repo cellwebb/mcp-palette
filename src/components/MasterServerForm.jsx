@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { generateUUID } from "../utils/helpers";
 
 const MasterServerForm = ({
   server,
@@ -18,6 +19,7 @@ const MasterServerForm = ({
   const [newArg, setNewArg] = useState("");
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvValue, setNewEnvValue] = useState("");
+  const [originalId, setOriginalId] = useState("");
 
   // Initialize form data when server changes
   useEffect(() => {
@@ -29,6 +31,9 @@ const MasterServerForm = ({
         args: server.args || [],
         env: server.env || {},
       });
+
+      // Save original ID if it exists
+      setOriginalId(server.originalId || "");
     } else {
       // Default values for new server
       setFormData({
@@ -38,6 +43,7 @@ const MasterServerForm = ({
         args: [],
         env: {},
       });
+      setOriginalId("");
     }
   }, [server, serverId]);
 
@@ -97,17 +103,49 @@ const MasterServerForm = ({
     });
   };
 
+  // Generate a UUID
+  const handleGenerateUUID = async () => {
+    try {
+      const uuid = await window.api.generateUUID();
+      setFormData((prev) => ({
+        ...prev,
+        id: uuid,
+      }));
+    } catch (error) {
+      console.error("Failed to generate UUID:", error);
+      // Fallback to client-side UUID generation if API fails
+      setFormData((prev) => ({
+        ...prev,
+        id: generateUUID(),
+      }));
+    }
+  };
+
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
 
     // Make sure we have a server ID
-    if (!formData.id && formData.name) {
-      // Generate an ID from the name
-      formData.id = formData.name.toLowerCase().replace(/\s+/g, "-");
+    if (!formData.id) {
+      if (formData.name) {
+        // Generate an ID from the name
+        formData.id = formData.name.toLowerCase().replace(/\s+/g, "-");
+      } else {
+        // Generate a UUID if no name available
+        formData.id = generateUUID();
+      }
     }
 
-    onSave(formData);
+    // Include original ID if it exists
+    const serverData = { ...formData };
+    if (originalId) {
+      serverData.originalId = originalId;
+    } else if (!server && formData.name) {
+      // For new servers, set original ID to the name
+      serverData.originalId = formData.name;
+    }
+
+    onSave(serverData);
   };
 
   return (
@@ -122,16 +160,31 @@ const MasterServerForm = ({
 
           <div className="form-row">
             <label htmlFor="id">Server ID</label>
-            <input
-              type="text"
-              id="id"
-              name="id"
-              value={formData.id}
-              onChange={handleChange}
-              placeholder="Unique identifier (e.g., 'filesystem', 'memory')"
-              required
-              readOnly={!!server} // Can't change ID of existing server
-            />
+            <div className="input-with-button">
+              <input
+                type="text"
+                id="id"
+                name="id"
+                value={formData.id}
+                onChange={handleChange}
+                placeholder="Unique identifier or UUID"
+                readOnly={!!server} // Can't change ID of existing server
+              />
+              {!server && (
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={handleGenerateUUID}
+                >
+                  Generate UUID
+                </button>
+              )}
+            </div>
+            {originalId && (
+              <div className="original-id-info">
+                <small>Original ID: {originalId}</small>
+              </div>
+            )}
           </div>
 
           <div className="form-row">
@@ -171,6 +224,12 @@ const MasterServerForm = ({
                 value={newArg}
                 onChange={(e) => setNewArg(e.target.value)}
                 placeholder="Enter argument"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newArg.trim()) {
+                    e.preventDefault();
+                    handleAddArg();
+                  }
+                }}
               />
               <button
                 type="button"
@@ -210,17 +269,37 @@ const MasterServerForm = ({
                 value={newEnvKey}
                 onChange={(e) => setNewEnvKey(e.target.value)}
                 placeholder="Variable name"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newEnvKey.trim()) {
+                    e.preventDefault();
+                    if (
+                      newEnvValue.trim() ||
+                      window.confirm(
+                        "Add environment variable with empty value?",
+                      )
+                    ) {
+                      handleAddEnvVar();
+                    }
+                  }
+                }}
               />
               <input
                 type="text"
                 value={newEnvValue}
                 onChange={(e) => setNewEnvValue(e.target.value)}
                 placeholder="Value"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newEnvKey.trim()) {
+                    e.preventDefault();
+                    handleAddEnvVar();
+                  }
+                }}
               />
               <button
                 type="button"
                 className="button button-secondary"
                 onClick={handleAddEnvVar}
+                disabled={!newEnvKey.trim()}
               >
                 Add
               </button>

@@ -9,7 +9,10 @@ import ServerSelectionModal from "./components/ServerSelectionModal";
 import {
   generateFinalProfileConfig,
   convertFinalConfigToInternal,
+  findProfileByIdOrName,
+  getServerDisplayName,
 } from "./utils/profileUtils";
+import { generateUUID, isValidUUID } from "./utils/helpers";
 import "./styles/index.css";
 
 const App = () => {
@@ -64,13 +67,14 @@ const App = () => {
   }, []);
 
   // Get the current profile object
-  const currentProfile = profiles.find((p) => p.name === activeProfile) || {};
+  const currentProfile = findProfileByIdOrName(profiles, activeProfile) || {};
 
   // Handle profile selection
-  const handleProfileSelect = async (profileName) => {
+  const handleProfileSelect = async (profileId) => {
     try {
-      await window.api.setActiveProfile(profileName);
-      setActiveProfile(profileName);
+      await window.api.setActiveProfile(profileId);
+      const profile = findProfileByIdOrName(profiles, profileId);
+      setActiveProfile(profile ? profile.name : "");
       setSelectedProfileServer(null);
     } catch (error) {
       console.error("Failed to set active profile:", error);
@@ -83,6 +87,7 @@ const App = () => {
 
     try {
       const newProfile = {
+        id: await window.api.generateUUID(),
         name: profileName,
         servers: {},
       };
@@ -141,7 +146,14 @@ const App = () => {
   };
 
   // Handle deleting a profile
-  const handleDeleteProfile = async (profileName) => {
+  const handleDeleteProfile = async (profileId) => {
+    const profile = findProfileByIdOrName(profiles, profileId);
+    if (!profile) {
+      console.error("Cannot find profile to delete");
+      return;
+    }
+
+    const profileName = profile.name;
     console.log(`Attempting to delete profile: ${profileName}`);
 
     // Validate profile name
@@ -170,7 +182,7 @@ const App = () => {
     try {
       // Call API to delete profile
       console.log("Calling deleteProfile API");
-      const updatedProfiles = await window.api.deleteProfile(profileName);
+      const updatedProfiles = await window.api.deleteProfile(profileId);
       console.log("API call successful, profiles updated", updatedProfiles);
 
       // Create new reference to force re-render
@@ -203,12 +215,20 @@ const App = () => {
   // Handle saving a server to master list
   const handleSaveMasterServer = async (serverData) => {
     try {
-      const serverId = serverData.id;
-      delete serverData.id; // Remove id from the object, it's the key in the map
+      let serverId = serverData.id;
+
+      // If no ID is provided, generate a UUID
+      if (!serverId) {
+        serverId = await window.api.generateUUID();
+      }
+
+      // Create a new object without the ID (will be used as key in the map)
+      const serverConfig = { ...serverData };
+      delete serverConfig.id;
 
       const updatedMasterList = await window.api.addMasterServer({
         id: serverId,
-        ...serverData,
+        ...serverConfig,
       });
 
       setServerMasterList(updatedMasterList);
@@ -217,10 +237,13 @@ const App = () => {
 
       // If this is a new server, show a success message
       if (!serverMasterList[serverId]) {
-        alert(`Server "${serverData.name}" added to Master List successfully!`);
+        await window.api.safeAlert(
+          `Server "${serverConfig.name}" added to Master List successfully!`,
+        );
       }
     } catch (error) {
       console.error("Failed to save server:", error);
+      await window.api.safeAlert("Failed to save server: " + error.message);
     }
   };
 
@@ -234,16 +257,16 @@ const App = () => {
       setServerMasterList(updatedMasterList);
     } catch (error) {
       console.error("Failed to update server:", error);
+      await window.api.safeAlert("Failed to update server: " + error.message);
     }
   };
 
   // Handle deleting a server from master list
   const handleDeleteMasterServer = async (serverId) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete the server "${serverId}" from the Master List? This will also remove it from all profiles.`,
-      )
-    ) {
+    const confirmed = await window.api.safeConfirm(
+      `Are you sure you want to delete the server "${serverId}" from the Master List? This will also remove it from all profiles.`,
+    );
+    if (!confirmed) {
       return;
     }
 
@@ -257,15 +280,24 @@ const App = () => {
       setProfiles(updatedProfiles);
     } catch (error) {
       console.error("Failed to delete server:", error);
+      await window.api.safeAlert("Failed to delete server: " + error.message);
     }
   };
 
   // Handle restoring server defaults
   const handleRestoreServerDefaults = async (serverId) => {
     try {
-      // Since we don't have a direct API for server defaults, we'll create a
-      // simplified version based on server ID
-      const serverType = serverId.split("-")[0] || serverId; // Extract server type from ID
+      const serverConfig = serverMasterList[serverId];
+
+      // If no server config is found, show error
+      if (!serverConfig) {
+        await window.api.safeAlert(`Server with ID ${serverId} not found.`);
+        return;
+      }
+
+      // Get the original ID or name to determine server type
+      const serverType =
+        serverConfig.originalId || serverConfig.name || serverId;
 
       // Default configurations based on server type
       const defaultConfigs = {
@@ -274,12 +306,14 @@ const App = () => {
           command: "npx",
           args: ["-y", "@modelcontextprotocol/server-filesystem"],
           env: { BASE_DIRS: "~/Documents,~/Downloads" },
+          originalId: "filesystem",
         },
         memory: {
           name: "memory",
           command: "npx",
           args: ["-y", "@modelcontextprotocol/server-memory"],
           env: { MEMORY_FILE_PATH: "~/.mcp-memory.json" },
+          originalId: "memory",
         },
         puppeteer: {
           name: "puppeteer",
@@ -289,17 +323,26 @@ const App = () => {
             HEADLESS: "true",
             USER_AGENT: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
           },
+          originalId: "puppeteer",
         },
         // Add more server types as needed
       };
 
-      // Get default configuration for this server type
-      const defaultConfig = defaultConfigs[serverType] || {
-        name: serverMasterList[serverId].name,
-        command: "npx",
-        args: ["-y", `@modelcontextprotocol/server-${serverType}`],
-        env: {},
-      };
+      // Try to determine server type from original ID or name
+      const serverTypeKey = Object.keys(defaultConfigs).find(
+        (key) => key === serverType || key === serverType.split("-")[0],
+      );
+
+      // Get default configuration for this server type or use fallback
+      const defaultConfig = serverTypeKey
+        ? defaultConfigs[serverTypeKey]
+        : {
+            name: serverConfig.name || "unnamed-server",
+            command: "npx",
+            args: ["-y", `@modelcontextprotocol/server-${serverType}`],
+            env: {},
+            originalId: serverConfig.originalId || serverType,
+          };
 
       // Update the server with default configuration
       const updatedMasterList = await window.api.updateMasterServer(
@@ -308,10 +351,14 @@ const App = () => {
       );
       setServerMasterList(updatedMasterList);
 
-      alert(`Server "${serverId}" restored to default configuration.`);
+      await window.api.safeAlert(
+        `Server "${getServerDisplayName(serverConfig)}" restored to default configuration.`,
+      );
     } catch (error) {
       console.error("Failed to restore server defaults:", error);
-      alert(`Failed to restore defaults: ${error.message}`);
+      await window.api.safeAlert(
+        `Failed to restore defaults: ${error.message}`,
+      );
     }
   };
 
@@ -319,7 +366,7 @@ const App = () => {
   const handleToggleProfileServer = async (serverId) => {
     try {
       // Get current profile
-      const profile = profiles.find((p) => p.name === activeProfile);
+      const profile = findProfileByIdOrName(profiles, activeProfile);
       if (!profile) return;
 
       // Create a copy of the profile
@@ -350,6 +397,7 @@ const App = () => {
       setProfiles(updatedProfiles);
     } catch (error) {
       console.error("Failed to toggle server:", error);
+      await window.api.safeAlert("Failed to toggle server: " + error.message);
     }
   };
 
@@ -357,7 +405,7 @@ const App = () => {
   const handleAddServerToProfile = async (serverId) => {
     try {
       // Get current profile
-      const profile = profiles.find((p) => p.name === activeProfile);
+      const profile = findProfileByIdOrName(profiles, activeProfile);
       if (!profile) return;
 
       // Create a copy of the profile
@@ -387,6 +435,9 @@ const App = () => {
       setActivePage("profiles");
     } catch (error) {
       console.error("Failed to add server to profile:", error);
+      await window.api.safeAlert(
+        "Failed to add server to profile: " + error.message,
+      );
     }
   };
 
@@ -400,7 +451,7 @@ const App = () => {
   const handleRemoveServerFromProfile = async (serverId) => {
     try {
       // Get current profile
-      const profile = profiles.find((p) => p.name === activeProfile);
+      const profile = findProfileByIdOrName(profiles, activeProfile);
       if (!profile) return;
 
       // Create a copy of the profile
@@ -422,6 +473,9 @@ const App = () => {
       setProfiles(updatedProfiles);
     } catch (error) {
       console.error("Failed to remove server from profile:", error);
+      await window.api.safeAlert(
+        "Failed to remove server from profile: " + error.message,
+      );
     }
   };
 
@@ -429,7 +483,7 @@ const App = () => {
   const handleSaveOverrides = async (updatedServer) => {
     try {
       // Get current profile
-      const profile = profiles.find((p) => p.name === activeProfile);
+      const profile = findProfileByIdOrName(profiles, activeProfile);
       if (!profile) return;
 
       // Create a copy of the profile
@@ -455,6 +509,7 @@ const App = () => {
       setSelectedProfileServer(null);
     } catch (error) {
       console.error("Failed to save overrides:", error);
+      await window.api.safeAlert("Failed to save overrides: " + error.message);
     }
   };
 
@@ -462,7 +517,7 @@ const App = () => {
   const handleRestoreProfileServerDefaults = async (serverId, profileName) => {
     try {
       // Get current profile
-      const profile = profiles.find((p) => p.name === profileName);
+      const profile = findProfileByIdOrName(profiles, profileName);
       if (!profile) return;
 
       // Create a copy of the profile
@@ -484,12 +539,19 @@ const App = () => {
       );
       setProfiles(updatedProfiles);
 
-      alert(
-        `Server "${serverId}" in profile "${profileName}" restored to defaults.`,
+      // Show confirmation
+      const serverName = serverMasterList[serverId]
+        ? getServerDisplayName(serverMasterList[serverId])
+        : serverId;
+
+      await window.api.safeAlert(
+        `Server "${serverName}" in profile "${profileName}" restored to defaults.`,
       );
     } catch (error) {
       console.error("Failed to restore server defaults:", error);
-      alert(`Failed to restore defaults: ${error.message}`);
+      await window.api.safeAlert(
+        `Failed to restore defaults: ${error.message}`,
+      );
     }
   };
 
@@ -507,11 +569,11 @@ const App = () => {
           setProfiles(result.profiles);
         }
 
-        alert("Configuration imported successfully!");
+        await window.api.safeAlert("Configuration imported successfully!");
       }
     } catch (error) {
       console.error("Failed to import configuration:", error);
-      alert(`Import failed: ${error.message}`);
+      await window.api.safeAlert(`Import failed: ${error.message}`);
     }
   };
 
@@ -521,11 +583,11 @@ const App = () => {
       const success = await window.api.exportConfig();
 
       if (success) {
-        alert("Configuration exported successfully!");
+        await window.api.safeAlert("Configuration exported successfully!");
       }
     } catch (error) {
       console.error("Failed to export configuration:", error);
-      alert(`Export failed: ${error.message}`);
+      await window.api.safeAlert(`Export failed: ${error.message}`);
     }
   };
 
@@ -563,7 +625,7 @@ const App = () => {
       setEditMode("form");
     } catch (error) {
       console.error("Failed to update from JSON:", error);
-      alert(`Failed to save JSON: ${error.message}`);
+      await window.api.safeAlert(`Failed to save JSON: ${error.message}`);
     }
   };
 
@@ -746,7 +808,9 @@ const App = () => {
                       <div className="server-json-header">
                         <h2>
                           Server JSON:{" "}
-                          {serverMasterList[selectedServerMaster].name}
+                          {getServerDisplayName(
+                            serverMasterList[selectedServerMaster],
+                          )}
                         </h2>
                         <button
                           className="button button-secondary"

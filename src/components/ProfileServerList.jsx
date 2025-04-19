@@ -4,6 +4,7 @@ import {
   hasOverrides,
   filterInternalFields,
 } from "../utils/helpers";
+import { getServerDisplayName } from "../utils/profileUtils";
 import DropdownMenu from "./DropdownMenu";
 import ConfirmButton from "./ConfirmButton";
 
@@ -31,21 +32,25 @@ const ProfileServerList = ({
     );
   }
 
+  // Get list of server IDs in this profile
+  const profileServerIds = Object.keys(profile.servers);
+
   return (
     <div className="profile-server-list">
       <h2>Servers in {profile.name}</h2>
 
-      {Object.entries(masterServers).map(([serverId, masterData]) => {
+      {profileServerIds.map((serverId) => {
+        const masterData = masterServers[serverId];
+        // Skip if master server no longer exists
+        if (!masterData) return null;
+
         const profileServer = profile.servers[serverId] || {
           enabled: false,
           overrides: {},
         };
         const effectiveConfig = getEffectiveConfig(masterData, profileServer);
         const hasServerOverrides = hasOverrides(profileServer.overrides);
-
-        if (!profile.servers[serverId]) {
-          return null; // Don't show servers not in this profile
-        }
+        const serverName = getServerDisplayName(masterData);
 
         return (
           <div
@@ -55,7 +60,7 @@ const ProfileServerList = ({
           >
             <div className="profile-server-header">
               <div className="profile-server-name">
-                {masterData.name}
+                {serverName}
                 {hasServerOverrides && (
                   <span className="override-indicator">Customized</span>
                 )}
@@ -79,19 +84,22 @@ const ProfileServerList = ({
                   items={[
                     {
                       label: "Copy JSON to clipboard",
-                      action: function () {
+                      action: async function () {
                         // Filter out internal fields before copying
                         const mcpConfig = filterInternalFields(effectiveConfig);
                         const configData = JSON.stringify(mcpConfig, null, 2);
-                        navigator.clipboard
-                          .writeText(configData)
-                          .then(() => {
-                            alert(`Server configuration copied to clipboard`);
-                          })
-                          .catch((err) => {
-                            console.error("Failed to copy to clipboard: ", err);
-                            alert("Failed to copy to clipboard");
-                          });
+
+                        try {
+                          await navigator.clipboard.writeText(configData);
+                          await window.api.safeAlert(
+                            `Server configuration copied to clipboard`,
+                          );
+                        } catch (err) {
+                          console.error("Failed to copy to clipboard: ", err);
+                          await window.api.safeAlert(
+                            "Failed to copy to clipboard",
+                          );
+                        }
                       },
                     },
                   ]}
@@ -127,7 +135,7 @@ const ProfileServerList = ({
                 {hasServerOverrides && (
                   <ConfirmButton
                     label="Restore Defaults"
-                    confirmMessage={`Restore default configuration for ${masterData.name}? This will remove all customizations.`}
+                    confirmMessage={`Restore default configuration for ${serverName}? This will remove all customizations.`}
                     onConfirm={() => onRestoreDefaults(serverId, profile.name)}
                     className="button button-small button-secondary"
                   />
@@ -135,7 +143,7 @@ const ProfileServerList = ({
 
                 <ConfirmButton
                   label="Remove"
-                  confirmMessage={`Remove ${masterData.name} from this profile?`}
+                  confirmMessage={`Remove ${serverName} from this profile?`}
                   onConfirm={() => onRemoveServer(serverId)}
                   className="button button-small button-danger"
                 />

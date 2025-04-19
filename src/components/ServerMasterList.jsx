@@ -1,5 +1,6 @@
 import React from "react";
 import DropdownMenu from "./DropdownMenu";
+import { getServerDisplayName } from "../utils/profileUtils";
 
 const ServerMasterList = ({
   servers,
@@ -31,93 +32,102 @@ const ServerMasterList = ({
         <h2>Server Master List</h2>
       </div>
 
-      {Object.entries(servers).map(([serverId, serverData]) => (
-        <div
-          key={serverId}
-          className={`server-master-item ${selectedServer === serverId ? "active" : ""}`}
-          onClick={() => onSelectServer(serverId)}
-        >
-          <div className="server-master-item-header">
-            <div className="server-master-item-name">{serverData.name}</div>
-            <div className="server-master-item-actions">
-              <DropdownMenu
-                items={[
-                  {
-                    label: "Copy JSON to clipboard",
-                    action: () => {
-                      const serverConfig = JSON.stringify(
-                        {
-                          id: serverId,
-                          ...serverData,
-                        },
-                        null,
-                        2,
-                      );
-                      navigator.clipboard
-                        .writeText(serverConfig)
-                        .then(() => {
-                          alert(`Server configuration copied to clipboard`);
-                        })
-                        .catch((err) => {
-                          console.error("Failed to copy to clipboard: ", err);
-                          alert("Failed to copy to clipboard");
-                        });
+      {Object.entries(servers).map(([serverId, serverData]) => {
+        const serverName = getServerDisplayName(serverData);
+
+        return (
+          <div
+            key={serverId}
+            className={`server-master-item ${selectedServer === serverId ? "active" : ""}`}
+            onClick={() => onSelectServer(serverId)}
+          >
+            <div className="server-master-item-header">
+              <div className="server-master-item-name">{serverName}</div>
+              <div className="server-master-item-actions">
+                <DropdownMenu
+                  items={[
+                    {
+                      label: "Copy JSON to clipboard",
+                      action: () => {
+                        const serverConfig = JSON.stringify(
+                          {
+                            id: serverId,
+                            ...serverData,
+                          },
+                          null,
+                          2,
+                        );
+                        navigator.clipboard
+                          .writeText(serverConfig)
+                          .then(() => {
+                            alert(`Server configuration copied to clipboard`);
+                          })
+                          .catch((err) => {
+                            console.error("Failed to copy to clipboard: ", err);
+                            alert("Failed to copy to clipboard");
+                          });
+                      },
+                      icon: "📋",
                     },
-                    icon: "📋",
-                  },
-                  {
-                    label: "View JSON",
-                    action: () => onViewServerJson(serverId),
-                    icon: "📑",
-                  },
-                  {
-                    label: "Restore Defaults",
-                    action: () => {
-                      if (
-                        confirm(
-                          `Restore default configuration for server "${serverData.name}"?`,
-                        )
-                      ) {
-                        // Call restore function passed as prop
-                        onRestoreDefaults(serverId);
-                      }
+                    {
+                      label: "View JSON",
+                      action: () => onViewServerJson(serverId),
+                      icon: "📑",
                     },
-                    icon: "🔄",
-                  },
-                  {
-                    label: "Delete Server",
-                    action: () => {
-                      if (
-                        confirm(
-                          `Are you sure you want to delete the server "${serverData.name}"?`,
-                        )
-                      ) {
-                        onDeleteServer(serverId);
-                      }
+                    {
+                      label: "Restore Defaults",
+                      action: async () => {
+                        const confirmed = await window.api.safeConfirm(
+                          `Restore default configuration for server "${serverName}"?`,
+                        );
+                        if (confirmed) {
+                          // Call restore function passed as prop
+                          onRestoreDefaults(serverId);
+                        }
+                      },
+                      icon: "🔄",
                     },
-                    icon: "🗑️",
-                    type: "danger",
-                  },
-                ]}
-              />
-            </div>
-          </div>
-          <div className="server-master-item-details">
-            <div className="server-master-item-command">
-              <code>
-                {serverData.command} {(serverData.args || []).join(" ")}
-              </code>
-            </div>
-            {serverData.env && Object.keys(serverData.env).length > 0 && (
-              <div className="server-master-item-env-vars">
-                <span>
-                  {Object.keys(serverData.env).length} environment variables
-                </span>
+                    {
+                      label: "Delete Server",
+                      action: async () => {
+                        const confirmed = await window.api.safeConfirm(
+                          `Are you sure you want to delete the server "${serverName}"?`,
+                        );
+                        if (confirmed) {
+                          onDeleteServer(serverId);
+                        }
+                      },
+                      icon: "🗑️",
+                      type: "danger",
+                    },
+                  ]}
+                />
               </div>
-            )}
+            </div>
+            <div className="server-master-item-details">
+              <div className="server-master-item-command">
+                <code>
+                  {serverData.command} {(serverData.args || []).join(" ")}
+                </code>
+              </div>
+              {serverData.env && Object.keys(serverData.env).length > 0 && (
+                <div className="server-master-item-env-vars">
+                  <span>
+                    {Object.keys(serverData.env).length} environment variables
+                  </span>
+                </div>
+              )}
+              {serverData.originalId &&
+                serverData.originalId !== serverName && (
+                  <div className="server-master-item-original-id">
+                    <span className="server-id-label">Original ID:</span>{" "}
+                    {serverData.originalId}
+                  </div>
+                )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

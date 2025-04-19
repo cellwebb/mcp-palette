@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import DropdownMenu from "./DropdownMenu";
 import ConfirmationModal from "./ConfirmationModal";
 import SimpleRenameModal from "./SimpleRenameModal";
+import { findProfileByIdOrName } from "../utils/profileUtils";
 
 const ProfileSelector = ({
   profiles,
@@ -81,13 +82,13 @@ const ProfileSelector = ({
   };
 
   // Initiate profile deletion
-  const initiateDeleteProfile = async (profileName) => {
+  const initiateDeleteProfile = async (profileId) => {
     if (profiles.length <= 1) {
       await window.api.safeAlert("Cannot delete the last remaining profile");
       return;
     }
 
-    setProfileToDelete(profileName);
+    setProfileToDelete(profileId);
     setShowDeleteConfirmation(true);
   };
 
@@ -143,7 +144,7 @@ const ProfileSelector = ({
       {showDeleteConfirmation && (
         <ConfirmationModal
           title="Delete Profile"
-          message={`Are you sure you want to delete the profile "${profileToDelete}"? This action cannot be undone.`}
+          message={`Are you sure you want to delete this profile? This action cannot be undone.`}
           confirmText="Delete"
           cancelText="Cancel"
           onConfirm={confirmDeleteProfile}
@@ -219,9 +220,9 @@ const ProfileSelector = ({
       <div className="profile-list">
         {profiles.map((profile) => (
           <div
-            key={profile.name}
+            key={profile.id || profile.name}
             className={`profile-item ${activeProfile === profile.name ? "active" : ""}`}
-            onClick={() => onProfileSelect(profile.name)}
+            onClick={() => onProfileSelect(profile.id || profile.name)}
           >
             <div className="profile-item-header">
               <span>{profile.name}</span>
@@ -252,7 +253,8 @@ const ProfileSelector = ({
                       },
                       {
                         label: "Delete Profile",
-                        action: () => initiateDeleteProfile(profile.name),
+                        action: () =>
+                          initiateDeleteProfile(profile.id || profile.name),
                         type: "danger",
                       },
                     ]}

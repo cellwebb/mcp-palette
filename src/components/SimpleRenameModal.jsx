@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { findProfileByIdOrName } from "../utils/profileUtils";
 
 const SimpleRenameModal = ({
   isOpen,
@@ -63,6 +64,12 @@ const SimpleRenameModal = ({
       console.log(
         `Attempting to rename profile from ${profileName} to ${newName.trim()}`,
       );
+
+      // Find the profile by name to get its ID
+      const profile = profiles.find((p) => p.name === profileName);
+      if (!profile) {
+        throw new Error(`Profile "${profileName}" not found`);
+      }
 
       // Try different approaches to ensure it works
       let updatedProfiles;
