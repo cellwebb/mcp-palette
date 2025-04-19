@@ -92,14 +92,12 @@ const ProfileServerList = ({
                             alert("Failed to copy to clipboard");
                           });
                       },
-                      icon: "📋",
                     },
                     {
                       label: "Edit Overrides",
                       action: (e) => {
                         onEditOverrides(serverId);
                       },
-                      icon: "✏️",
                     },
                     ...(hasServerOverrides
                       ? [
@@ -114,7 +112,6 @@ const ProfileServerList = ({
                                 onRestoreDefaults(serverId, profile.name);
                               }
                             },
-                            icon: "🔄",
                           },
                         ]
                       : []),
@@ -129,7 +126,6 @@ const ProfileServerList = ({
                           onRemoveServer(serverId);
                         }
                       },
-                      icon: "🗑️",
                       type: "danger",
                     },
                   ]}

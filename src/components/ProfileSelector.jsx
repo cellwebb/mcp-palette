@@ -101,22 +101,18 @@ const ProfileSelector = ({
                     {
                       label: "Copy JSON to clipboard",
                       action: () => copyToClipboard(profile),
-                      icon: "📋",
                     },
                     {
                       label: "Export JSON",
                       action: () => exportProfile(profile),
-                      icon: "📤",
                     },
                     {
                       label: "Rename Profile",
                       action: () => onRenameProfile(profile.name),
-                      icon: "✏️",
                     },
                     {
                       label: "Delete Profile",
                       action: () => onDeleteProfile(profile.name),
-                      icon: "🗑️",
                       type: "danger",
                     },
                   ]}
