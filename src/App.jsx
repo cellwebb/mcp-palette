@@ -96,47 +96,123 @@ const App = () => {
   };
 
   // Handle renaming a profile
-  const handleRenameProfile = async (profileName) => {
-    const newName = prompt("Enter new profile name:", profileName);
+  const handleRenameProfile = async (oldName, newName) => {
+    console.log("handleRenameProfile called with:", oldName, newName);
 
-    if (!newName || newName === profileName) {
-      return; // User cancelled or didn't change the name
+    // Validate inputs
+    if (!oldName) {
+      console.error("Cannot rename with empty old name");
+      await window.api.safeAlert("Cannot rename with empty old name");
+      return;
     }
 
+    // Ensure newName is trimmed
+    newName = newName.trim();
+
+    if (!newName) {
+      console.error("Cannot rename to empty name");
+      await window.api.safeAlert("Profile name cannot be empty");
+      return;
+    }
+
+    // Early return for no change (with success message)
+    if (newName === oldName) {
+      console.log("No change in name, considering this successful");
+      return; // No change, but not an error
+    }
+
+    console.log("Proceeding with rename from", oldName, "to", newName);
+
     try {
-      const updatedProfiles = await window.api.renameProfile(
-        profileName,
-        newName,
-      );
-      setProfiles(updatedProfiles);
+      // Check if the new name already exists (case insensitive)
+      if (
+        profiles.some((p) => p.name.toLowerCase() === newName.toLowerCase())
+      ) {
+        console.error("Profile name already exists");
+        await window.api.safeAlert(
+          `A profile with the name "${newName}" already exists`,
+        );
+        return;
+      }
+
+      // Call the API
+      console.log("Calling renameProfile API");
+      const updatedProfiles = await window.api.renameProfile(oldName, newName);
+      console.log("API call successful, updated profiles:", updatedProfiles);
+
+      // Ensure proper state updates by using the returned profiles
+      setProfiles([...updatedProfiles]); // Force a new array reference
 
       // Update active profile if it was renamed
-      const newActiveProfile = await window.api.getActiveProfile();
-      setActiveProfile(newActiveProfile);
+      if (activeProfile === oldName) {
+        console.log(
+          "Updating active profile from",
+          activeProfile,
+          "to",
+          newName,
+        );
+        setActiveProfile(newName);
+      }
+
+      console.log("Rename completed successfully");
     } catch (error) {
       console.error("Failed to rename profile:", error);
-      alert(error.message || "Failed to rename profile");
+      await window.api.safeAlert(error.message || "Failed to rename profile");
+      throw error; // Re-throw to notify the ProfileSelector component
     }
   };
 
   // Handle deleting a profile
   const handleDeleteProfile = async (profileName) => {
-    if (
-      !confirm(`Are you sure you want to delete the profile "${profileName}"?`)
-    ) {
+    console.log(`Attempting to delete profile: ${profileName}`);
+
+    // Validate profile name
+    if (!profileName) {
+      console.error("Cannot delete profile with empty name");
       return;
     }
 
-    try {
-      const updatedProfiles = await window.api.deleteProfile(profileName);
-      setProfiles(updatedProfiles);
+    // Check if this is the only profile
+    if (profiles.length <= 1) {
+      await window.api.safeAlert("Cannot delete the last remaining profile");
+      return;
+    }
 
-      // Update active profile if it was deleted
-      const newActiveProfile = await window.api.getActiveProfile();
-      setActiveProfile(newActiveProfile);
+    // Confirm deletion with user using safe confirm dialog
+    const confirmed = await window.api.safeConfirm(
+      `Are you sure you want to delete the profile "${profileName}"?`,
+    );
+    if (!confirmed) {
+      console.log("Profile deletion cancelled by user");
+      return;
+    }
+
+    console.log("User confirmed deletion, proceeding...");
+
+    try {
+      // Call API to delete profile
+      console.log("Calling deleteProfile API");
+      const updatedProfiles = await window.api.deleteProfile(profileName);
+      console.log("API call successful, profiles updated", updatedProfiles);
+
+      // Create new reference to force re-render
+      setProfiles([...updatedProfiles]);
+
+      // If the active profile was deleted, fetch the new active profile
+      if (activeProfile === profileName) {
+        console.log("Active profile was deleted, getting new active profile");
+        const newActiveProfile = await window.api.getActiveProfile();
+        console.log(`New active profile: ${newActiveProfile}`);
+        setActiveProfile(newActiveProfile);
+      }
+
+      // Reset any selected server
       setSelectedProfileServer(null);
+
+      console.log("Profile deletion completed successfully");
     } catch (error) {
       console.error("Failed to delete profile:", error);
+      await window.api.safeAlert(error.message || "Failed to delete profile");
     }
   };
 

@@ -18,9 +18,18 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
+      // Disable prompt, confirm and alert dialogs
+      enableRemoteModule: false,
     },
     backgroundColor: "#ffffff",
     show: false,
+  });
+
+  // Disable native dialogs
+  mainWindow.webContents.on("did-create-window", (childWindow) => {
+    childWindow.webContents.on("will-prevent-unload", (event) => {
+      event.preventDefault();
+    });
   });
 
   // In development mode, load from vite dev server
@@ -208,48 +217,129 @@ ipcMain.handle(
 );
 
 ipcMain.handle("rename-profile", async (event, { oldName, newName }) => {
-  if (!newName || newName.trim() === "") {
+  console.log("rename-profile handler called with:", { oldName, newName });
+
+  // Validate input parameters
+  if (!oldName) {
+    console.error("Original profile name cannot be empty");
+    throw new Error("Original profile name cannot be empty");
+  }
+
+  // Ensure newName is trimmed
+  newName = newName ? newName.trim() : "";
+
+  if (!newName) {
+    console.error("New profile name cannot be empty");
     throw new Error("New profile name cannot be empty");
   }
 
-  const profiles = store.get("profiles");
+  try {
+    const profiles = store.get("profiles");
+    console.log(
+      "Current profiles:",
+      profiles.map((p) => p.name),
+    );
 
-  // Check if the new name already exists
-  if (profiles.some((p) => p.name === newName)) {
-    throw new Error(`A profile with the name "${newName}" already exists`);
+    // Check if the new name already exists (case-insensitive)
+    if (
+      profiles.some(
+        (p) =>
+          p.name.toLowerCase() === newName.toLowerCase() && p.name !== oldName,
+      )
+    ) {
+      console.error(`A profile with the name "${newName}" already exists`);
+      throw new Error(`A profile with the name "${newName}" already exists`);
+    }
+
+    // Find the profile with the old name
+    const index = profiles.findIndex((p) => p.name === oldName);
+    console.log("Found profile index:", index);
+
+    if (index === -1) {
+      console.error(`Profile "${oldName}" not found`);
+      throw new Error(`Profile "${oldName}" not found`);
+    }
+
+    // Update the profile name
+    profiles[index].name = newName;
+    console.log(`Renamed profile from "${oldName}" to "${newName}"`);
+
+    // Create a deep copy to ensure we're not returning a reference
+    const profilesCopy = JSON.parse(JSON.stringify(profiles));
+
+    // Save the updated profiles
+    store.set("profiles", profilesCopy);
+    console.log("Saved updated profiles");
+
+    // If this is the active profile, update the active profile name
+    if (store.get("activeProfile") === oldName) {
+      console.log(`Updating active profile from "${oldName}" to "${newName}"`);
+      store.set("activeProfile", newName);
+    }
+
+    console.log("Returning updated profiles");
+    return profilesCopy;
+  } catch (error) {
+    console.error("Error during profile rename:", error.message);
+    throw error; // Re-throw to be handled by the renderer
   }
-
-  // Find the profile with the old name
-  const index = profiles.findIndex((p) => p.name === oldName);
-  if (index === -1) {
-    throw new Error(`Profile "${oldName}" not found`);
-  }
-
-  // Update the profile name
-  profiles[index].name = newName;
-
-  // Save the updated profiles
-  store.set("profiles", profiles);
-
-  // If this is the active profile, update the active profile name
-  if (store.get("activeProfile") === oldName) {
-    store.set("activeProfile", newName);
-  }
-
-  return profiles;
 });
 
 ipcMain.handle("delete-profile", async (event, profileName) => {
-  let profiles = store.get("profiles");
-  profiles = profiles.filter((p) => p.name !== profileName);
-  store.set("profiles", profiles);
+  try {
+    console.log(`delete-profile handler called with: ${profileName}`);
 
-  // If the active profile was deleted, switch to the first available
-  if (store.get("activeProfile") === profileName && profiles.length > 0) {
-    store.set("activeProfile", profiles[0].name);
+    // Validate input
+    if (!profileName) {
+      console.error("Profile name cannot be empty");
+      throw new Error("Profile name cannot be empty");
+    }
+
+    // Get current profiles
+    let profiles = store.get("profiles");
+    console.log(`Current profiles count: ${profiles.length}`);
+
+    // Check if we have enough profiles to delete one
+    if (profiles.length <= 1) {
+      console.error("Cannot delete the last remaining profile");
+      throw new Error("Cannot delete the last remaining profile");
+    }
+
+    // Find the profile to make sure it exists
+    const profileToDelete = profiles.find((p) => p.name === profileName);
+    if (!profileToDelete) {
+      console.error(`Profile "${profileName}" not found`);
+      throw new Error(`Profile "${profileName}" not found`);
+    }
+
+    // Filter out the profile to delete
+    const updatedProfiles = profiles.filter((p) => p.name !== profileName);
+    console.log(`After filter: ${updatedProfiles.length} profiles remaining`);
+
+    // Create a deep copy to avoid reference issues
+    const profilesCopy = JSON.parse(JSON.stringify(updatedProfiles));
+
+    // Save the updated profiles
+    store.set("profiles", profilesCopy);
+    console.log("Saved updated profiles after deletion");
+
+    // Check if we need to update active profile
+    const currentActiveProfile = store.get("activeProfile");
+    if (currentActiveProfile === profileName) {
+      console.log(
+        `Active profile "${currentActiveProfile}" was deleted, switching to first available`,
+      );
+      // Set first available profile as active
+      store.set("activeProfile", profilesCopy[0].name);
+      console.log(`New active profile: ${profilesCopy[0].name}`);
+    }
+
+    console.log("Delete profile operation completed successfully");
+    return profilesCopy;
+  } catch (error) {
+    console.error("Error during profile deletion:", error.message);
+    throw error; // Re-throw to be handled by the renderer
   }
-
-  return profiles;
 });
 
 // Handler for getting merged server configuration

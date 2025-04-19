@@ -6,8 +6,9 @@ import KebabIcon from "./KebabIcon";
  * A dropdown menu component that displays a list of actions
  * @param {Object} props - Component props
  * @param {Array} props.items - Array of menu items with label and action properties
+ * @param {boolean} props.disabled - Whether the menu trigger is disabled
  */
-const DropdownMenu = ({ items }) => {
+const DropdownMenu = ({ items, disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -29,6 +30,8 @@ const DropdownMenu = ({ items }) => {
   // Toggle menu open/closed
   const toggleMenu = (e) => {
     e.stopPropagation();
+
+    if (disabled) return;
 
     if (!isOpen && menuRef.current) {
       const rect = menuRef.current.getBoundingClientRect();
@@ -52,10 +55,15 @@ const DropdownMenu = ({ items }) => {
   return (
     <div className="dropdown-menu-container" ref={menuRef}>
       <button
-        className="dropdown-menu-trigger"
+        className={`dropdown-menu-trigger ${disabled ? "disabled" : ""}`}
         onClick={toggleMenu}
         aria-label="More options"
         onMouseDown={(e) => e.stopPropagation()}
+        disabled={disabled}
+        style={{
+          opacity: disabled ? 0.5 : 1,
+          cursor: disabled ? "not-allowed" : "pointer",
+        }}
       >
         <KebabIcon />
       </button>

@@ -1,11 +1,13 @@
 import React from "react";
 
-const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
-  // Debug log
-  console.log("ConfirmationModal rendered with:", { isOpen, title, message });
-
-  if (!isOpen) return null;
-
+const ConfirmationModal = ({
+  title,
+  message,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  onConfirm,
+  onCancel,
+}) => {
   return (
     <div
       className="modal-overlay"
@@ -15,28 +17,14 @@ const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor:
-          "rgba(0, 0, 0, 0.7)" /* Darker background for visibility */,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        zIndex: 9999 /* Increased z-index */,
+        zIndex: 9999,
       }}
       onClick={onCancel}
     >
-      {/* Debug indicator */}
-      <div
-        style={{
-          position: "absolute",
-          top: 10,
-          right: 10,
-          color: "white",
-          padding: "5px 10px",
-          backgroundColor: "red",
-        }}
-      >
-        MODAL VISIBLE
-      </div>
       <div
         className="modal-content"
         style={{
@@ -65,10 +53,10 @@ const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
           }}
         >
           <button className="button button-secondary" onClick={onCancel}>
-            Cancel
+            {cancelText}
           </button>
           <button className="button button-primary" onClick={onConfirm}>
-            Confirm
+            {confirmText}
           </button>
         </div>
       </div>

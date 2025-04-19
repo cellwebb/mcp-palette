@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DropdownMenu from "./DropdownMenu";
+import ConfirmationModal from "./ConfirmationModal";
+import RenameModal from "./RenameModal";
 
 const ProfileSelector = ({
   profiles,
@@ -12,10 +14,104 @@ const ProfileSelector = ({
   setIsAddingProfile,
 }) => {
   const [newProfileName, setNewProfileName] = useState("");
+  const [operationInProgress, setOperationInProgress] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [profileToDelete, setProfileToDelete] = useState(null);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [profileToRename, setProfileToRename] = useState(null);
 
-  const handleAddProfile = () => {
-    onAddProfile(newProfileName);
-    setNewProfileName("");
+  const handleAddProfile = async () => {
+    if (!newProfileName.trim()) {
+      await window.api.safeAlert("Profile name cannot be empty");
+      return;
+    }
+
+    // Check for duplicate names
+    if (
+      profiles.some(
+        (p) => p.name.toLowerCase() === newProfileName.trim().toLowerCase(),
+      )
+    ) {
+      await window.api.safeAlert(
+        `A profile with the name "${newProfileName.trim()}" already exists`,
+      );
+      return;
+    }
+
+    setOperationInProgress(true);
+    try {
+      onAddProfile(newProfileName.trim());
+      setNewProfileName("");
+    } catch (error) {
+      console.error("Error adding profile:", error);
+      await window.api.safeAlert(error.message || "Failed to add profile");
+    } finally {
+      setOperationInProgress(false);
+    }
+  };
+
+  // Start renaming a profile using modal
+  const startRenaming = (profileName) => {
+    // Only allow one operation at a time
+    if (operationInProgress) return;
+
+    setProfileToRename(profileName);
+    setShowRenameModal(true);
+  };
+
+  // Handle rename confirmation from modal
+  const handleRenameConfirm = async (newName) => {
+    if (!profileToRename || !newName) return;
+
+    setOperationInProgress(true);
+    try {
+      await onRenameProfile(profileToRename, newName);
+      setShowRenameModal(false);
+      setProfileToRename(null);
+    } catch (error) {
+      console.error("Error during rename:", error);
+      await window.api.safeAlert(
+        `Failed to rename profile: ${error.message || "Unknown error"}`,
+      );
+    } finally {
+      setOperationInProgress(false);
+    }
+  };
+
+  // Cancel renaming
+  const handleRenameCancel = () => {
+    setShowRenameModal(false);
+    setProfileToRename(null);
+  };
+
+  // Initiate profile deletion
+  const initiateDeleteProfile = async (profileName) => {
+    if (profiles.length <= 1) {
+      await window.api.safeAlert("Cannot delete the last remaining profile");
+      return;
+    }
+
+    setProfileToDelete(profileName);
+    setShowDeleteConfirmation(true);
+  };
+
+  // Confirm and execute profile deletion
+  const confirmDeleteProfile = async () => {
+    if (!profileToDelete) return;
+
+    setOperationInProgress(true);
+    try {
+      await onDeleteProfile(profileToDelete);
+      setShowDeleteConfirmation(false);
+      setProfileToDelete(null);
+    } catch (error) {
+      console.error("Error deleting profile:", error);
+      await window.api.safeAlert(
+        `Failed to delete profile: ${error.message || "Unknown error"}`,
+      );
+    } finally {
+      setOperationInProgress(false);
+    }
   };
 
   // Helper function to export a profile as JSON file
@@ -32,26 +128,51 @@ const ProfileSelector = ({
   };
 
   // Helper function to copy profile data to clipboard
-  const copyToClipboard = (profile) => {
+  const copyToClipboard = async (profile) => {
     const dataStr = JSON.stringify(profile, null, 2);
-    navigator.clipboard
-      .writeText(dataStr)
-      .then(() => {
-        alert(`Profile '${profile.name}' copied to clipboard`);
-      })
-      .catch((err) => {
-        console.error("Failed to copy profile to clipboard: ", err);
-        alert("Failed to copy to clipboard");
-      });
+    try {
+      await navigator.clipboard.writeText(dataStr);
+      await window.api.safeAlert(
+        `Profile '${profile.name}' copied to clipboard`,
+      );
+    } catch (err) {
+      console.error("Failed to copy profile to clipboard: ", err);
+      await window.api.safeAlert("Failed to copy to clipboard");
+    }
   };
 
   return (
     <div className="profile-selector">
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmation && (
+        <ConfirmationModal
+          title="Delete Profile"
+          message={`Are you sure you want to delete the profile "${profileToDelete}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          onConfirm={confirmDeleteProfile}
+          onCancel={() => {
+            setShowDeleteConfirmation(false);
+            setProfileToDelete(null);
+          }}
+        />
+      )}
+
+      {/* Rename Modal */}
+      <RenameModal
+        isOpen={showRenameModal}
+        title="Rename Profile"
+        initialName={profileToRename}
+        onConfirm={handleRenameConfirm}
+        onCancel={handleRenameCancel}
+      />
+
       <div className="profile-selector-header">
         <h2>Profiles</h2>
         <button
           className="button button-primary"
           onClick={() => setIsAddingProfile(true)}
+          disabled={operationInProgress}
         >
           Add Profile
         </button>
@@ -64,12 +185,13 @@ const ProfileSelector = ({
             placeholder="Profile Name"
             value={newProfileName}
             onChange={(e) => setNewProfileName(e.target.value)}
+            autoFocus
           />
           <div className="profile-form-actions">
             <button
               className="button button-primary"
               onClick={handleAddProfile}
-              disabled={!newProfileName.trim()}
+              disabled={!newProfileName.trim() || operationInProgress}
             >
               Save
             </button>
@@ -79,6 +201,7 @@ const ProfileSelector = ({
                 setIsAddingProfile(false);
                 setNewProfileName("");
               }}
+              disabled={operationInProgress}
             >
               Cancel
             </button>
@@ -95,29 +218,41 @@ const ProfileSelector = ({
           >
             <div className="profile-item-header">
               <span>{profile.name}</span>
-              {profiles.length > 1 && (
-                <DropdownMenu
-                  items={[
-                    {
-                      label: "Copy JSON to clipboard",
-                      action: () => copyToClipboard(profile),
-                    },
-                    {
-                      label: "Export JSON",
-                      action: () => exportProfile(profile),
-                    },
-                    {
-                      label: "Rename Profile",
-                      action: () => onRenameProfile(profile.name),
-                    },
-                    {
-                      label: "Delete Profile",
-                      action: () => onDeleteProfile(profile.name),
-                      type: "danger",
-                    },
-                  ]}
-                />
-              )}
+              <div
+                className="profile-actions"
+                style={{ display: "flex", gap: "5px" }}
+              >
+                <button
+                  className="button button-small button-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!operationInProgress) startRenaming(profile.name);
+                  }}
+                  disabled={operationInProgress}
+                >
+                  Rename
+                </button>
+                {profiles.length > 1 && (
+                  <DropdownMenu
+                    items={[
+                      {
+                        label: "Copy JSON to clipboard",
+                        action: () => copyToClipboard(profile),
+                      },
+                      {
+                        label: "Export JSON",
+                        action: () => exportProfile(profile),
+                      },
+                      {
+                        label: "Delete Profile",
+                        action: () => initiateDeleteProfile(profile.name),
+                        type: "danger",
+                      },
+                    ]}
+                    disabled={operationInProgress}
+                  />
+                )}
+              </div>
             </div>
             <div className="profile-item-info">
               {(() => {

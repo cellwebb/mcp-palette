@@ -1,3 +1,30 @@
+/* Profile rename form */
+.profile-rename-form {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.profile-rename-form input {
+  flex: 1;
+  min-width: 100px;
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 14px;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.profile-actions button:disabled,
+.dropdown-menu-trigger.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 /* Read-only badge */
 .readonly-badge {
   display: inline-block;
