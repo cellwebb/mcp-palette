@@ -53,14 +53,6 @@ const JsonEditor = ({
   // Handle editor mounting
   const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
-
-    // Add keyboard shortcut for copying JSON (Ctrl+Shift+C)
-    editor.addCommand(
-      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_C,
-      () => {
-        handleCopyToClipboard();
-      },
-    );
   };
 
   // Monaco editor options
@@ -128,9 +120,9 @@ const JsonEditor = ({
             <button
               className="button button-info"
               onClick={handleCopyToClipboard}
-              title="Copy JSON to clipboard (Ctrl+Shift+C)"
+              title="Copy JSON to clipboard"
             >
-              Copy to Clipboard (Ctrl+Shift+C)
+              Copy to Clipboard
             </button>
 
             {copySuccess && (
