@@ -81,23 +81,43 @@ const App = () => {
     }
   };
 
-  // Handle adding a new profile
-  const handleAddProfile = async (profileName) => {
-    if (!profileName.trim()) return;
-
-    try {
-      const newProfile = {
-        id: await window.api.generateUUID(),
-        name: profileName,
-        servers: {},
-      };
-
-      const updatedProfiles = await window.api.addProfile(newProfile);
-      setProfiles(updatedProfiles);
-      setIsAddingProfile(false);
-    } catch (error) {
-      console.error("Failed to add profile:", error);
+  // Handle adding a new profile - SIMPLIFIED VERSION
+  const handleAddProfile = (profileName) => {
+    if (!profileName || !profileName.trim()) {
+      alert("Profile name cannot be empty");
+      return;
     }
+
+    // Check for duplicate names
+    if (
+      profiles.some((p) => p.name.toLowerCase() === profileName.toLowerCase())
+    ) {
+      alert(`A profile with the name "${profileName}" already exists`);
+      return;
+    }
+
+    // Generate a client-side UUID rather than asking the server
+    const uuid = generateUUID();
+
+    // Create new profile object
+    const newProfile = {
+      id: uuid,
+      name: profileName.trim(),
+      servers: {},
+    };
+
+    // Use a synchronous approach to make debugging easier
+    window.api
+      .addProfile(newProfile)
+      .then((updatedProfiles) => {
+        console.log("Profile added successfully:", newProfile);
+        setProfiles(updatedProfiles);
+        setIsAddingProfile(false);
+      })
+      .catch((error) => {
+        console.error("Failed to add profile:", error);
+        alert("Error creating profile: " + (error.message || "Unknown error"));
+      });
   };
 
   // Handle renaming a profile

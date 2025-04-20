@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
-import DropdownMenu from "./DropdownMenu";
+import { useState } from "react";
 import ConfirmationModal from "./ConfirmationModal";
+import DropdownMenu from "./DropdownMenu";
 import SimpleRenameModal from "./SimpleRenameModal";
-import { findProfileByIdOrName } from "../utils/profileUtils";
 
 const ProfileSelector = ({
   profiles,
@@ -21,9 +20,10 @@ const ProfileSelector = ({
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [profileToRename, setProfileToRename] = useState(null);
 
-  const handleAddProfile = async () => {
+  // Direct function to create a profile
+  const createProfile = () => {
     if (!newProfileName.trim()) {
-      await window.api.safeAlert("Profile name cannot be empty");
+      alert("Profile name cannot be empty");
       return;
     }
 
@@ -33,22 +33,19 @@ const ProfileSelector = ({
         (p) => p.name.toLowerCase() === newProfileName.trim().toLowerCase(),
       )
     ) {
-      await window.api.safeAlert(
+      alert(
         `A profile with the name "${newProfileName.trim()}" already exists`,
       );
       return;
     }
 
-    setOperationInProgress(true);
-    try {
-      onAddProfile(newProfileName.trim());
-      setNewProfileName("");
-    } catch (error) {
-      console.error("Error adding profile:", error);
-      await window.api.safeAlert(error.message || "Failed to add profile");
-    } finally {
-      setOperationInProgress(false);
-    }
+    console.log("Creating profile:", newProfileName);
+
+    // Call the parent component's handler directly
+    onAddProfile(newProfileName.trim());
+
+    // Clear the input field
+    setNewProfileName("");
   };
 
   // Start renaming a profile using modal
@@ -84,7 +81,7 @@ const ProfileSelector = ({
   // Initiate profile deletion
   const initiateDeleteProfile = async (profileId) => {
     if (profiles.length <= 1) {
-      await window.api.safeAlert("Cannot delete the last remaining profile");
+      alert("Cannot delete the last remaining profile");
       return;
     }
 
@@ -103,9 +100,7 @@ const ProfileSelector = ({
       setProfileToDelete(null);
     } catch (error) {
       console.error("Error deleting profile:", error);
-      await window.api.safeAlert(
-        `Failed to delete profile: ${error.message || "Unknown error"}`,
-      );
+      alert(`Failed to delete profile: ${error.message || "Unknown error"}`);
     } finally {
       setOperationInProgress(false);
     }
@@ -129,12 +124,10 @@ const ProfileSelector = ({
     const dataStr = JSON.stringify(profile, null, 2);
     try {
       await navigator.clipboard.writeText(dataStr);
-      await window.api.safeAlert(
-        `Profile '${profile.name}' copied to clipboard`,
-      );
+      alert(`Profile '${profile.name}' copied to clipboard`);
     } catch (err) {
       console.error("Failed to copy profile to clipboard: ", err);
-      await window.api.safeAlert("Failed to copy to clipboard");
+      alert("Failed to copy to clipboard");
     }
   };
 
@@ -178,26 +171,26 @@ const ProfileSelector = ({
 
       {isAddingProfile && (
         <div className="profile-form">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (newProfileName.trim() && !operationInProgress) {
-                handleAddProfile();
-              }
-            }}
-          >
+          <div>
             <input
               type="text"
               placeholder="Profile Name"
               value={newProfileName}
               onChange={(e) => setNewProfileName(e.target.value)}
               autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  createProfile();
+                }
+              }}
             />
             <div className="profile-form-actions">
               <button
-                type="submit"
+                type="button"
                 className="button button-primary"
-                disabled={!newProfileName.trim() || operationInProgress}
+                onClick={createProfile}
+                disabled={!newProfileName.trim()}
               >
                 Save
               </button>
@@ -208,12 +201,11 @@ const ProfileSelector = ({
                   setIsAddingProfile(false);
                   setNewProfileName("");
                 }}
-                disabled={operationInProgress}
               >
                 Cancel
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
 

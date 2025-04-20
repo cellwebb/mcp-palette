@@ -289,17 +289,60 @@ ipcMain.handle("set-active-profile", async (event, profileId) => {
 });
 
 ipcMain.handle("add-profile", async (event, profile) => {
-  const profiles = store.get("profiles");
+  console.log("Adding profile:", profile);
 
-  // Ensure profile has an ID
-  if (!profile.id) {
-    profile.id = generateUUID();
+  try {
+    const profiles = store.get("profiles");
+
+    // Ensure profile has an ID
+    if (!profile.id) {
+      profile.id = generateUUID();
+    }
+
+    // Make sure name is valid
+    if (
+      !profile.name ||
+      typeof profile.name !== "string" ||
+      !profile.name.trim()
+    ) {
+      throw new Error("Profile name cannot be empty");
+    }
+
+    // Check for duplicate names
+    if (
+      profiles.some((p) => p.name.toLowerCase() === profile.name.toLowerCase())
+    ) {
+      throw new Error(
+        `A profile with the name "${profile.name}" already exists`,
+      );
+    }
+
+    // Ensure servers is initialized
+    if (!profile.servers) {
+      profile.servers = {};
+    }
+
+    // Add profile
+    profiles.push(profile);
+    store.set("profiles", profiles);
+
+    // If this is the first profile, set it as active
+    if (profiles.length === 1) {
+      store.set("activeProfile", profile.name);
+    }
+
+    console.log("Profile added successfully:", profile.name);
+
+    // Send notification
+    if (mainWindow) {
+      mainWindow.webContents.send("profiles-updated");
+    }
+
+    return profiles;
+  } catch (error) {
+    console.error("Error adding profile:", error);
+    throw error;
   }
-
-  profiles.push(profile);
-  store.set("profiles", profiles);
-
-  return profiles;
 });
 
 ipcMain.handle(
