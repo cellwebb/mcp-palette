@@ -1,12 +1,11 @@
-import React from "react";
 import {
+  filterInternalFields,
   getEffectiveConfig,
   hasOverrides,
-  filterInternalFields,
 } from "../utils/helpers";
 import { getServerDisplayName } from "../utils/profileUtils";
-import DropdownMenu from "./DropdownMenu";
 import ConfirmButton from "./ConfirmButton";
+import DropdownMenu from "./DropdownMenu";
 
 const ProfileServerList = ({
   profile,
@@ -142,8 +141,8 @@ const ProfileServerList = ({
                 )}
 
                 <ConfirmButton
-                  label="Remove"
-                  confirmMessage={`Remove ${serverName} from this profile?`}
+                  label="Remove server from profile"
+                  confirmMessage={`Remove ${serverName} from profile '${profile.name}'?`}
                   onConfirm={() => onRemoveServer(serverId)}
                   className="button button-small button-danger"
                 />
