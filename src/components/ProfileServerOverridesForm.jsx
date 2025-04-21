@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import ServerJsonViewer from "./ServerJsonViewer";
+import { formatSingleServerConfig } from "../utils/validation/mcpValidator";
 
 const ProfileServerOverridesForm = ({
   serverId,
@@ -24,6 +26,7 @@ const ProfileServerOverridesForm = ({
 
   // Track environment variables that should be removed
   const [removedEnvVars, setRemovedEnvVars] = useState({});
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
 
   const [newArg, setNewArg] = useState("");
   const [newEnvKey, setNewEnvKey] = useState("");
@@ -331,12 +334,80 @@ const ProfileServerOverridesForm = ({
     );
   }
 
+  // Generate preview JSON based on current form state and overrides
+  const generatePreviewJson = () => {
+    // Create a server object with the effective configuration
+    const effectiveServer = { ...masterServer };
+    
+    // Apply overrides from the form data based on which fields are being overridden
+    if (overrideFields.name) {
+      effectiveServer.name = formData.name;
+    }
+    
+    if (overrideFields.command) {
+      effectiveServer.command = formData.command;
+    }
+    
+    if (overrideFields.args) {
+      effectiveServer.args = [...formData.args];
+    }
+    
+    // Handle environment variables
+    effectiveServer.env = { ...masterServer.env };
+    
+    // Apply environment variable overrides
+    Object.entries(overrideFields.env).forEach(([key, isOverridden]) => {
+      if (isOverridden && formData.env[key] !== undefined) {
+        effectiveServer.env[key] = formData.env[key];
+      }
+    });
+    
+    // Remove deleted environment variables
+    Object.keys(removedEnvVars).forEach(key => {
+      delete effectiveServer.env[key];
+    });
+    
+    // If env is empty, remove it
+    if (effectiveServer.env && Object.keys(effectiveServer.env).length === 0) {
+      delete effectiveServer.env;
+    }
+    
+    return effectiveServer;
+  };
+
+  // Toggle JSON preview
+  const toggleJsonPreview = () => {
+    setShowJsonPreview(!showJsonPreview);
+  };
+
   return (
     <div className="form-container">
-      <h2>Customize Server for {profileName}</h2>
-      <p>Override specific settings from the Server Master List.</p>
+      <div className="form-header">
+        <div>
+          <h2>Customize Server for {profileName}</h2>
+          <p>Override specific settings from the Server Master List.</p>
+        </div>
+        <div className="form-actions">
+          <button 
+            type="button" 
+            className={`button ${showJsonPreview ? 'button-info' : 'button-secondary'}`}
+            onClick={toggleJsonPreview}
+          >
+            {showJsonPreview ? 'Hide JSON' : 'Preview JSON'}
+          </button>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit}>
+      {showJsonPreview ? (
+        <div className="json-preview-container">
+          <ServerJsonViewer 
+            server={generatePreviewJson()} 
+            serverId={serverId}
+            onBack={toggleJsonPreview}
+          />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
         <div className="form-section">
           <h3>Basic Settings</h3>
 
@@ -586,6 +657,7 @@ const ProfileServerOverridesForm = ({
           </button>
         </div>
       </form>
+      )}
     </div>
   );
 };
