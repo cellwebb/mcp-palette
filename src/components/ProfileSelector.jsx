@@ -2,6 +2,7 @@ import { useState } from "react";
 import ConfirmationModal from "./ConfirmationModal";
 import DropdownMenu from "./DropdownMenu";
 import SimpleRenameModal from "./SimpleRenameModal";
+import ConfirmButton from "./ConfirmButton";
 
 const ProfileSelector = ({
   profiles,
@@ -222,16 +223,7 @@ const ProfileSelector = ({
                 className="profile-actions"
                 style={{ display: "flex", gap: "5px" }}
               >
-                <button
-                  className="button button-small button-secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!operationInProgress) startRenaming(profile.name);
-                  }}
-                  disabled={operationInProgress}
-                >
-                  Rename
-                </button>
+                {/* Only show JSON options in dropdown if there are multiple profiles */}
                 {profiles.length > 1 && (
                   <DropdownMenu
                     items={[
@@ -242,12 +234,6 @@ const ProfileSelector = ({
                       {
                         label: "Export JSON",
                         action: () => exportProfile(profile),
-                      },
-                      {
-                        label: "Delete Profile",
-                        action: () =>
-                          initiateDeleteProfile(profile.id || profile.name),
-                        type: "danger",
                       },
                     ]}
                     disabled={operationInProgress}

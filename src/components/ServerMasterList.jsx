@@ -1,6 +1,7 @@
 import React from "react";
 import DropdownMenu from "./DropdownMenu";
 import { getServerDisplayName } from "../utils/profileUtils";
+import ConfirmButton from "./ConfirmButton";
 
 const ServerMasterList = ({
   servers,
@@ -10,7 +11,17 @@ const ServerMasterList = ({
   onDeleteServer,
   onViewServerJson,
   onRestoreDefaults,
+  profiles = [], // Added profiles prop with default
 }) => {
+  // Helper function to check if a server is used in any enabled profile
+  const isServerInUse = (serverId) => {
+    return profiles.some(
+      (profile) =>
+        profile.servers &&
+        profile.servers[serverId] &&
+        profile.servers[serverId].enabled,
+    );
+  };
   if (!servers || Object.keys(servers).length === 0) {
     return (
       <div className="empty-state">
@@ -124,6 +135,18 @@ const ServerMasterList = ({
                     {serverData.originalId}
                   </div>
                 )}
+
+              {/* Add delete button for servers not in use */}
+              {!isServerInUse(serverId) && (
+                <div style={{ marginTop: "10px" }}>
+                  <ConfirmButton
+                    label="Delete Server"
+                    confirmMessage={`Are you sure you want to delete the server "${serverName}"?`}
+                    onConfirm={() => onDeleteServer(serverId)}
+                    className="button button-small button-danger"
+                  />
+                </div>
+              )}
             </div>
           </div>
         );

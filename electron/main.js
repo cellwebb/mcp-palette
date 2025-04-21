@@ -247,20 +247,38 @@ ipcMain.handle(
 ipcMain.handle("delete-master-server", async (event, serverId) => {
   const serverMasterList = store.get("serverMasterList");
 
-  // Ensure the server exists
-  if (serverMasterList[serverId]) {
-    delete serverMasterList[serverId];
-    store.set("serverMasterList", serverMasterList);
-
-    // Also remove this server from all profiles
-    const profiles = store.get("profiles");
-    profiles.forEach((profile) => {
-      if (profile.servers && profile.servers[serverId]) {
-        delete profile.servers[serverId];
-      }
-    });
-    store.set("profiles", profiles);
+  // Check if the server exists
+  if (!serverMasterList[serverId]) {
+    throw new Error(`Server with ID ${serverId} not found`);
   }
+
+  // Check if server is used in any profile
+  const profiles = store.get("profiles");
+  const serverInUse = profiles.some(
+    (profile) =>
+      profile.servers &&
+      profile.servers[serverId] &&
+      profile.servers[serverId].enabled,
+  );
+
+  // If server is in use, don't allow deletion
+  if (serverInUse) {
+    throw new Error(
+      "Cannot delete server while it is enabled in a profile. Please disable the server in all profiles first.",
+    );
+  }
+
+  // Now delete the server
+  delete serverMasterList[serverId];
+  store.set("serverMasterList", serverMasterList);
+
+  // Remove references from all profiles
+  profiles.forEach((profile) => {
+    if (profile.servers && profile.servers[serverId]) {
+      delete profile.servers[serverId];
+    }
+  });
+  store.set("profiles", profiles);
 
   return serverMasterList;
 });
@@ -476,7 +494,7 @@ ipcMain.handle("delete-profile", async (event, profileId) => {
     }
 
     // Filter out the profile to delete
-    const updatedProfiles = profiles.filter((p) => p.name !== profileName);
+    const updatedProfiles = profiles.filter((p) => p.id !== profile.id);
     console.log(`After filter: ${updatedProfiles.length} profiles remaining`);
 
     // Create a deep copy to avoid reference issues

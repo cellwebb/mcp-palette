@@ -6,6 +6,7 @@ import MasterServerForm from "./components/MasterServerForm";
 import ProfileServerOverridesForm from "./components/ProfileServerOverridesForm";
 import JsonEditor from "./components/JsonEditor";
 import ServerSelectionModal from "./components/ServerSelectionModal";
+import SimpleRenameModal from "./components/SimpleRenameModal";
 import {
   generateFinalProfileConfig,
   convertFinalConfigToInternal,
@@ -33,6 +34,7 @@ const App = () => {
   const [isEditingOverrides, setIsEditingOverrides] = useState(false);
   const [showServerSelectionModal, setShowServerSelectionModal] =
     useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
 
   // Load data on initial render
   useEffect(() => {
@@ -270,13 +272,6 @@ const App = () => {
 
   // Handle deleting a server from master list
   const handleDeleteMasterServer = async (serverId) => {
-    const confirmed = await window.api.safeConfirm(
-      `Are you sure you want to delete the server "${serverId}" from the Master List? This will also remove it from all profiles.`,
-    );
-    if (!confirmed) {
-      return;
-    }
-
     try {
       const updatedMasterList = await window.api.deleteMasterServer(serverId);
       setServerMasterList(updatedMasterList);
@@ -647,6 +642,19 @@ const App = () => {
           onAddServer={handleAddServerToProfile}
         />
       )}
+
+      {/* Rename Profile Modal */}
+      <SimpleRenameModal
+        isOpen={showRenameModal}
+        profileName={activeProfile}
+        profiles={profiles}
+        onSuccess={(updatedProfiles) => {
+          setProfiles(updatedProfiles);
+          setShowRenameModal(false);
+        }}
+        onCancel={() => setShowRenameModal(false)}
+        onRenameProfile={handleRenameProfile}
+      />
       <header className="header">
         <h1>MCP Palette</h1>
         <h2 className="subtitle">MCP Server Configuration Manager</h2>
@@ -744,12 +752,48 @@ const App = () => {
                         <>
                           <div className="profile-header">
                             <h2>Profile: {activeProfile}</h2>
-                            <button
-                              className="button button-primary"
-                              onClick={() => setShowServerSelectionModal(true)}
+                            <div
+                              className="profile-header-actions"
+                              style={{ display: "flex", gap: "10px" }}
                             >
-                              Add Server from Master List
-                            </button>
+                              <button
+                                className="button button-primary"
+                                onClick={() =>
+                                  setShowServerSelectionModal(true)
+                                }
+                              >
+                                Add Server from Master List
+                              </button>
+                              {/* Rename button */}
+                              <button
+                                className="button button-secondary"
+                                onClick={() => setShowRenameModal(true)}
+                              >
+                                Rename Profile
+                              </button>
+                              {/* Only show delete button if profile has no servers and there's more than one profile */}
+                              {profiles.length > 1 &&
+                                (!currentProfile.servers ||
+                                  Object.keys(currentProfile.servers).length ===
+                                    0) && (
+                                  <button
+                                    className="button button-danger"
+                                    onClick={async () => {
+                                      const confirmed =
+                                        await window.api.safeConfirm(
+                                          `Are you sure you want to delete the profile "${activeProfile}"?`,
+                                        );
+                                      if (confirmed) {
+                                        await handleDeleteProfile(
+                                          currentProfile.id,
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    Delete Profile
+                                  </button>
+                                )}
+                            </div>
                           </div>
 
                           <ProfileServerList
@@ -858,6 +902,7 @@ const App = () => {
                   ) : (
                     <ServerMasterList
                       servers={serverMasterList}
+                      profiles={profiles}
                       selectedServer={selectedServerMaster}
                       onSelectServer={setSelectedServerMaster}
                       onAddServer={handleAddMasterServer}

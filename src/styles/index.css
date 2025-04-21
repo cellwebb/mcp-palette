@@ -900,3 +900,20 @@ input[type="checkbox"] {
   color: #666;
   font-size: 14px;
 }
+
+/* Profile header */
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.profile-header h2 {
+  margin: 0;
+}
+
+.profile-header-actions {
+  display: flex;
+  gap: 10px;
+}
