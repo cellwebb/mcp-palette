@@ -238,6 +238,7 @@ const App = () => {
   const handleAddMasterServer = () => {
     setSelectedServerMaster(null);
     setIsAddingServer(true);
+    setEditMode("form"); // Switch to form view when adding a server
   };
 
   // Handle saving a server to master list
