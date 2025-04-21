@@ -67,6 +67,26 @@ Build the application for your current platform:
 npm run electron:build
 ```
 
+## 🧪 Testing
+
+MCP Palette includes comprehensive testing capabilities:
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode
+npm test:watch
+
+# Test coverage
+npm test:coverage
+
+# Run specific test suites
+npm test:validator  # MCP validation tests
+npm test:components # Component tests
+npm test:validation # Validation tests
+```
+
 ## 🧰 Architecture
 
 MCP Palette uses a "Server Master List + Profile Overrides" architecture:
