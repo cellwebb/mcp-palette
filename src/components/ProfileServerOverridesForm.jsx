@@ -652,7 +652,7 @@ const ProfileServerOverridesForm = ({
             className="button button-info"
             onClick={handleViewJson}
           >
-            View JSON
+            Preview JSON
           </button>
         </div>
       </form>

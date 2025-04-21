@@ -434,11 +434,11 @@ const MasterServerForm = ({
             Cancel
           </button>
           <button
-            type="button"
-            className="button button-info"
-            onClick={handleViewJson}
+          type="button"
+          className="button button-info"
+          onClick={handleViewJson}
           >
-            View JSON
+          Preview JSON
           </button>
         </div>
       </form>

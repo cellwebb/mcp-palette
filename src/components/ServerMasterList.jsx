@@ -86,7 +86,7 @@ const ServerMasterList = ({
                       icon: "📋",
                     },
                     {
-                      label: "View JSON",
+                      label: "Preview JSON",
                       action: () => onViewServerJson(serverId),
                       icon: "📑",
                     },
