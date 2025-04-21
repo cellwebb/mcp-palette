@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import ServerJsonViewer from "./ServerJsonViewer";
-import { formatSingleServerConfig } from "../utils/validation/mcpValidator";
 
 const ProfileServerOverridesForm = ({
   serverId,
@@ -323,17 +322,6 @@ const ProfileServerOverridesForm = ({
     });
   };
 
-  if (!masterServer) {
-    return (
-      <div className="empty-state">
-        <p>Server not found in master list.</p>
-        <button className="button button-secondary" onClick={onCancel}>
-          Back
-        </button>
-      </div>
-    );
-  }
-
   // Generate preview JSON based on current form state and overrides
   const generatePreviewJson = () => {
     // Create a server object with the effective configuration
@@ -375,39 +363,42 @@ const ProfileServerOverridesForm = ({
     return effectiveServer;
   };
 
-  // Toggle JSON preview
-  const toggleJsonPreview = () => {
-    setShowJsonPreview(!showJsonPreview);
+  // Handle JSON preview
+  const handleViewJson = () => {
+    setShowJsonPreview(true);
   };
+
+  const handleBackFromJson = () => {
+    setShowJsonPreview(false);
+  };
+
+  if (showJsonPreview) {
+    return (
+      <ServerJsonViewer 
+        server={generatePreviewJson()} 
+        serverId={serverId}
+        onBack={handleBackFromJson}
+      />
+    );
+  }
+
+  if (!masterServer) {
+    return (
+      <div className="empty-state">
+        <p>Server not found in master list.</p>
+        <button className="button button-secondary" onClick={onCancel}>
+          Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="form-container">
-      <div className="form-header">
-        <div>
-          <h2>Customize Server for {profileName}</h2>
-          <p>Override specific settings from the Server Master List.</p>
-        </div>
-        <div className="form-actions">
-          <button 
-            type="button" 
-            className={`button ${showJsonPreview ? 'button-info' : 'button-secondary'}`}
-            onClick={toggleJsonPreview}
-          >
-            {showJsonPreview ? 'Hide JSON' : 'Preview JSON'}
-          </button>
-        </div>
-      </div>
+      <h2>Customize Server for {profileName}</h2>
+      <p>Override specific settings from the Server Master List.</p>
 
-      {showJsonPreview ? (
-        <div className="json-preview-container">
-          <ServerJsonViewer 
-            server={generatePreviewJson()} 
-            serverId={serverId}
-            onBack={toggleJsonPreview}
-          />
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit}>
         <div className="form-section">
           <h3>Basic Settings</h3>
 
@@ -655,9 +646,15 @@ const ProfileServerOverridesForm = ({
           >
             Cancel
           </button>
+          <button
+            type="button"
+            className="button button-info"
+            onClick={handleViewJson}
+          >
+            View JSON
+          </button>
         </div>
       </form>
-      )}
     </div>
   );
 };

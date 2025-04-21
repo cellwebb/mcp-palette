@@ -428,13 +428,6 @@ body {
   margin: 0 auto;
 }
 
-.form-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-
 .json-preview-container {
   margin-top: 10px;
   border: 1px solid #e0e0e0;
