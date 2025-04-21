@@ -13,6 +13,10 @@ import {
   findProfileByIdOrName,
   getServerDisplayName,
 } from "./utils/profileUtils";
+import {
+  formatSingleServerConfig,
+  formatServerListToMcpJson,
+} from "./utils/validation/mcpValidator";
 import { generateUUID, isValidUUID } from "./utils/helpers";
 import "./styles/index.css";
 
@@ -857,14 +861,10 @@ const App = () => {
                   {viewingServerJson && selectedServerMaster ? (
                     // View individual server JSON
                     <div className="server-json-viewer">
-                      <div className="server-json-header">
-                        <h2>
-                          MCP Configuration JSON - Server:{" "}
-                          {getServerDisplayName(
-                            serverMasterList[selectedServerMaster],
-                          )}
-                          <span className="readonly-badge">🔒 Read-Only</span>
-                        </h2>
+                      <div
+                        className="server-json-actions"
+                        style={{ textAlign: "right", marginBottom: "15px" }}
+                      >
                         <button
                           className="button button-secondary"
                           onClick={() => setViewingServerJson(false)}
@@ -876,14 +876,20 @@ const App = () => {
                       <JsonEditor
                         json={JSON.stringify(
                           {
-                            // Exclude the internal id field
-                            ...serverMasterList[selectedServerMaster],
+                            [getServerDisplayName(
+                              serverMasterList[selectedServerMaster],
+                            )]: formatSingleServerConfig(
+                              serverMasterList[selectedServerMaster],
+                            ),
                           },
                           null,
                           2,
                         )}
                         readOnly={true}
                         isProfileView={false}
+                        serverName={getServerDisplayName(
+                          serverMasterList[selectedServerMaster],
+                        )}
                       />
                     </div>
                   ) : isAddingServer || selectedServerMaster ? (
@@ -918,7 +924,11 @@ const App = () => {
                 </>
               ) : (
                 <JsonEditor
-                  json={JSON.stringify(serverMasterList, null, 2)}
+                  json={JSON.stringify(
+                    formatServerListToMcpJson(serverMasterList),
+                    null,
+                    2,
+                  )}
                   readOnly={true}
                   isProfileView={false}
                 />

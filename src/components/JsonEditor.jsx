@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import MonacoEditor from "react-monaco-editor";
+import { validateMcpConfig } from "../utils/validation/mcpValidator";
 
 const JsonEditor = ({
   json,
@@ -7,15 +8,21 @@ const JsonEditor = ({
   onRestoreDefaults,
   isProfileView = true,
   profileName = "",
+  serverName = "",
 }) => {
   const [editorContent, setEditorContent] = useState(json);
   const [error, setError] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [validationStatus, setValidationStatus] = useState({
+    valid: true,
+    errors: [],
+  });
   const editorRef = useRef(null);
 
   // Update content when json prop changes
   useEffect(() => {
     setEditorContent(json);
+    validateMcpFormat(json);
   }, [json]);
 
   // Clear copy success message after 2 seconds
@@ -25,6 +32,20 @@ const JsonEditor = ({
       return () => clearTimeout(timer);
     }
   }, [copySuccess]);
+
+  // Validate MCP format
+  const validateMcpFormat = (jsonContent) => {
+    try {
+      const parsed = JSON.parse(jsonContent);
+      const validationResult = validateMcpConfig(parsed);
+      setValidationStatus(validationResult);
+    } catch (err) {
+      setValidationStatus({
+        valid: false,
+        errors: ["Invalid JSON format: " + err.message],
+      });
+    }
+  };
 
   // Validate JSON content
   const validateJson = (content) => {
@@ -165,9 +186,20 @@ const JsonEditor = ({
         <div className="json-editor-title">
           <h2>
             {isProfileView && profileName
-              ? `MCP Configuration JSON - ${profileName}`
-              : "MCP Configuration JSON - Server Master List"}{" "}
+              ? `MCP Configuration JSON - Profile: ${profileName}`
+              : serverName
+                ? `MCP Configuration JSON - Server: ${serverName}`
+                : "MCP Configuration JSON - All Servers"}{" "}
             <span className="readonly-badge">🔒 Read-Only</span>
+            {validationStatus.valid ? (
+              <span className="validation-badge validation-success">
+                ✔ MCP Compliant
+              </span>
+            ) : (
+              <span className="validation-badge validation-error">
+                ✘ Not MCP Compliant
+              </span>
+            )}
           </h2>
           <p className="json-editor-subtitle">
             {isProfileView ? (
@@ -175,6 +207,11 @@ const JsonEditor = ({
                 This view displays the effective MCP-compliant configuration
                 with only enabled servers, showing values inherited from the
                 master list with profile-specific overrides applied.
+              </>
+            ) : serverName ? (
+              <>
+                This view displays the selected server configuration in
+                MCP-compliant format.
               </>
             ) : (
               <>
@@ -197,13 +234,15 @@ const JsonEditor = ({
               >
                 Copy to Clipboard
               </button>
-              <button
-                className="button button-secondary"
-                onClick={handleExportToJson}
-                title="Export JSON as file"
-              >
-                Export JSON
-              </button>
+              {!serverName && (
+                <button
+                  className="button button-secondary"
+                  onClick={handleExportToJson}
+                  title="Export JSON as file"
+                >
+                  Export JSON
+                </button>
+              )}
             </div>
 
             {copySuccess && (
@@ -218,6 +257,17 @@ const JsonEditor = ({
       {error && (
         <div className="json-editor-error">
           <p>Error: {error}</p>
+        </div>
+      )}
+
+      {!validationStatus.valid && validationStatus.errors.length > 0 && (
+        <div className="json-editor-validation-errors">
+          <h3>MCP Compliance Issues:</h3>
+          <ul>
+            {validationStatus.errors.map((err, index) => (
+              <li key={index}>{err}</li>
+            ))}
+          </ul>
         </div>
       )}
 
