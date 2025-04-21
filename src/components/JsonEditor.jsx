@@ -165,16 +165,16 @@ const JsonEditor = ({
         <div className="json-editor-title">
           <h2>
             {isProfileView && profileName
-              ? `Profile: ${profileName}`
-              : "Server Master List"}{" "}
+              ? `MCP Configuration JSON - Profile: ${profileName}`
+              : "MCP Configuration JSON - Server Master List"}{" "}
             <span className="readonly-badge">🔒 Read-Only</span>
           </h2>
           <p className="json-editor-subtitle">
             {isProfileView ? (
               <>
-                This view displays the effective configuration with only enabled
-                servers, showing values inherited from the master list with
-                profile-specific overrides applied.
+                This view displays the effective MCP-compliant configuration
+                with only enabled servers, showing values inherited from the
+                master list with profile-specific overrides applied.
               </>
             ) : (
               <>

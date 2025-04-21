@@ -751,7 +751,7 @@ const App = () => {
                       ) : (
                         <>
                           <div className="profile-header">
-                            <h2>Profile: {activeProfile}</h2>
+                            <h2>Servers in Profile: {activeProfile}</h2>
                             <div
                               className="profile-header-actions"
                               style={{ display: "flex", gap: "10px" }}
@@ -859,7 +859,7 @@ const App = () => {
                     <div className="server-json-viewer">
                       <div className="server-json-header">
                         <h2>
-                          Server:{" "}
+                          MCP Configuration JSON - Server:{" "}
                           {getServerDisplayName(
                             serverMasterList[selectedServerMaster],
                           )}

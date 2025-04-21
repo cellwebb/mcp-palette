@@ -36,8 +36,6 @@ const ProfileServerList = ({
 
   return (
     <div className="profile-server-list">
-      <h2>Servers in {profile.name}</h2>
-
       {profileServerIds.map((serverId) => {
         const masterData = masterServers[serverId];
         // Skip if master server no longer exists
