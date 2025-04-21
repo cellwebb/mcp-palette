@@ -4,7 +4,20 @@ import { filterInternalFields } from "../utils/helpers";
 
 const ServerJsonViewer = ({ server, serverId, onBack }) => {
   // Format server object for JSON display - filter out internal fields
-  const serverJson = filterInternalFields(server);
+  let serverJson = filterInternalFields(server);
+
+  // Format as an MCP compliant JSON structure
+  const mcpJson = {
+    [server.name || serverId]: {
+      command: serverJson.command,
+      args: serverJson.args,
+    },
+  };
+
+  // Add environment variables if they exist
+  if (serverJson.env && Object.keys(serverJson.env).length > 0) {
+    mcpJson[server.name || serverId].env = serverJson.env;
+  }
 
   // Automatically focus on the JSON content when the component mounts
   useEffect(() => {
@@ -31,7 +44,7 @@ const ServerJsonViewer = ({ server, serverId, onBack }) => {
         </div>
       </div>
 
-      <JsonEditor json={JSON.stringify(serverJson, null, 2)} readOnly={true} />
+      <JsonEditor json={JSON.stringify(mcpJson, null, 2)} readOnly={true} />
     </div>
   );
 };

@@ -235,32 +235,19 @@ const App = () => {
   // Handle saving a server to master list
   const handleSaveMasterServer = async (serverData) => {
     try {
-      let serverId = serverData.id;
+      // UUID is now always generated on the backend
+      // We don't need to extract or handle the ID manually
 
-      // If no ID is provided, generate a UUID
-      if (!serverId) {
-        serverId = await window.api.generateUUID();
-      }
-
-      // Create a new object without the ID (will be used as key in the map)
-      const serverConfig = { ...serverData };
-      delete serverConfig.id;
-
-      const updatedMasterList = await window.api.addMasterServer({
-        id: serverId,
-        ...serverConfig,
-      });
+      const updatedMasterList = await window.api.addMasterServer(serverData);
 
       setServerMasterList(updatedMasterList);
       setIsAddingServer(false);
       setSelectedServerMaster(null);
 
-      // If this is a new server, show a success message
-      if (!serverMasterList[serverId]) {
-        await window.api.safeAlert(
-          `Server "${serverConfig.name}" added to Master List successfully!`,
-        );
-      }
+      // Show success message
+      await window.api.safeAlert(
+        `Server "${serverData.name}" added to Master List successfully!`,
+      );
     } catch (error) {
       console.error("Failed to save server:", error);
       await window.api.safeAlert("Failed to save server: " + error.message);

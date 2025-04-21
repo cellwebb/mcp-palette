@@ -190,8 +190,7 @@ const safeDialogs = {
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld("api", {
-  // UUID utilities
-  generateUUID: () => ipcRenderer.invoke("generate-uuid"),
+  // Server ID lookup - removed frontend UUID generation
   findServerByOriginalId: (originalId) =>
     ipcRenderer.invoke("find-server-by-original-id", originalId),
 

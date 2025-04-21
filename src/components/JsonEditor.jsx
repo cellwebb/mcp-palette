@@ -42,7 +42,31 @@ const JsonEditor = ({
   const handleCopyToClipboard = () => {
     try {
       // Format JSON properly for copying
-      const jsonToCopy = JSON.stringify(JSON.parse(editorContent), null, 2);
+      let jsonData = JSON.parse(editorContent);
+
+      // Special handling for profile view to format as MCP config
+      if (isProfileView && jsonData) {
+        // Ensure we're using the correct format for MCP
+        if (!jsonData.mcpServers && jsonData.servers) {
+          // Convert legacy format to MCP format
+          const mcpServers = {};
+          Object.entries(jsonData.servers || {}).forEach(([id, server]) => {
+            const serverName = server.name || id;
+            mcpServers[serverName] = {
+              command: server.command,
+              args: server.args,
+            };
+
+            if (server.env && Object.keys(server.env).length > 0) {
+              mcpServers[serverName].env = server.env;
+            }
+          });
+
+          jsonData = { mcpServers };
+        }
+      }
+
+      const jsonToCopy = JSON.stringify(jsonData, null, 2);
       navigator.clipboard.writeText(jsonToCopy);
       setCopySuccess(true);
     } catch (err) {
@@ -53,18 +77,45 @@ const JsonEditor = ({
   // Export JSON to file
   const handleExportToJson = () => {
     try {
-      const jsonToExport = JSON.stringify(JSON.parse(editorContent), null, 2);
-      const blob = new Blob([jsonToExport], { type: 'application/json' });
+      let jsonData = JSON.parse(editorContent);
+
+      // Special handling for profile view to format as MCP config
+      if (isProfileView && jsonData) {
+        // Ensure we're using the correct format for MCP
+        if (!jsonData.mcpServers && jsonData.servers) {
+          // Convert legacy format to MCP format
+          const mcpServers = {};
+          Object.entries(jsonData.servers || {}).forEach(([id, server]) => {
+            const serverName = server.name || id;
+            mcpServers[serverName] = {
+              command: server.command,
+              args: server.args,
+            };
+
+            if (server.env && Object.keys(server.env).length > 0) {
+              mcpServers[serverName].env = server.env;
+            }
+          });
+
+          jsonData = { mcpServers };
+        }
+      }
+
+      const jsonToExport = JSON.stringify(jsonData, null, 2);
+      const blob = new Blob([jsonToExport], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = 'export.json';
+      const filename = isProfileView
+        ? "mcp-config.json"
+        : "server-master-list.json";
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError('Failed to export: Invalid JSON format');
+      setError("Failed to export: Invalid JSON format");
     }
   };
 
@@ -135,7 +186,10 @@ const JsonEditor = ({
         </div>
         <div className="json-editor-actions">
           <div className="json-editor-actions-container">
-            <div className="json-editor-action-buttons" style={{ display: 'flex', gap: 8 }}>
+            <div
+              className="json-editor-action-buttons"
+              style={{ display: "flex", gap: 8 }}
+            >
               <button
                 className="button button-info"
                 onClick={handleCopyToClipboard}

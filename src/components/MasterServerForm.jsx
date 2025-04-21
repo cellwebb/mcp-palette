@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { generateUUID } from "../utils/helpers";
 
 const MasterServerForm = ({
   server,
@@ -9,7 +8,6 @@ const MasterServerForm = ({
   onViewJson,
 }) => {
   const [formData, setFormData] = useState({
-    id: "",
     name: "",
     command: "npx",
     args: [],
@@ -25,7 +23,6 @@ const MasterServerForm = ({
   useEffect(() => {
     if (server) {
       setFormData({
-        id: serverId || server.id || "",
         name: server.name || "",
         command: server.command || "npx",
         args: server.args || [],
@@ -37,7 +34,6 @@ const MasterServerForm = ({
     } else {
       // Default values for new server
       setFormData({
-        id: "",
         name: "",
         command: "npx",
         args: [],
@@ -103,39 +99,13 @@ const MasterServerForm = ({
     });
   };
 
-  // Generate a UUID
-  const handleGenerateUUID = async () => {
-    try {
-      const uuid = await window.api.generateUUID();
-      setFormData((prev) => ({
-        ...prev,
-        id: uuid,
-      }));
-    } catch (error) {
-      console.error("Failed to generate UUID:", error);
-      // Fallback to client-side UUID generation if API fails
-      setFormData((prev) => ({
-        ...prev,
-        id: generateUUID(),
-      }));
-    }
-  };
+  // UUID generation is now handled automatically by the backend
 
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Make sure we have a server ID
-    if (!formData.id) {
-      if (formData.name) {
-        // Generate an ID from the name
-        formData.id = formData.name.toLowerCase().replace(/\s+/g, "-");
-      } else {
-        // Generate a UUID if no name available
-        formData.id = generateUUID();
-      }
-    }
-
+    // The server ID will be generated automatically by the backend
     // Include original ID if it exists
     const serverData = { ...formData };
     if (originalId) {
@@ -157,35 +127,12 @@ const MasterServerForm = ({
       <form onSubmit={handleSubmit}>
         <div className="form-section">
           <h3>Basic Settings</h3>
-
-          <div className="form-row">
-            <label htmlFor="id">Server ID</label>
-            <div className="input-with-button">
-              <input
-                type="text"
-                id="id"
-                name="id"
-                value={formData.id}
-                onChange={handleChange}
-                placeholder="Unique identifier or UUID"
-                readOnly={!!server} // Can't change ID of existing server
-              />
-              {!server && (
-                <button
-                  type="button"
-                  className="button button-secondary"
-                  onClick={handleGenerateUUID}
-                >
-                  Generate UUID
-                </button>
-              )}
+          {/* Server ID field removed - UUIDs are now generated automatically */}
+          {originalId && (
+            <div className="original-id-info">
+              <small>Original ID: {originalId}</small>
             </div>
-            {originalId && (
-              <div className="original-id-info">
-                <small>Original ID: {originalId}</small>
-              </div>
-            )}
-          </div>
+          )}
 
           <div className="form-row">
             <label htmlFor="name">Display Name</label>

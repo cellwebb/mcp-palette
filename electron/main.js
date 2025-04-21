@@ -205,20 +205,20 @@ ipcMain.handle("get-server-master-list", async () => {
 ipcMain.handle("add-master-server", async (event, serverData) => {
   const serverMasterList = store.get("serverMasterList");
 
-  // Generate UUID if not provided
-  const serverId = serverData.id || generateUUID();
+  // Always generate a new UUID for the server
+  const serverId = generateUUID();
 
-  // Create a copy of the server data without the ID
-  const serverCopy = { ...serverData };
-  delete serverCopy.id;
+  // Prepare server config
+  const serverConfig = { ...serverData };
 
-  // Add original ID reference if it's a new server
-  if (!serverData.id) {
-    serverCopy.originalId = serverCopy.name;
+  // Set originalId to the server name if creating a new server
+  // or preserve existing originalId for edits
+  if (!serverConfig.originalId && serverConfig.name) {
+    serverConfig.originalId = serverConfig.name;
   }
 
   // Add server to master list
-  serverMasterList[serverId] = serverCopy;
+  serverMasterList[serverId] = serverConfig;
   store.set("serverMasterList", serverMasterList);
 
   return serverMasterList;
@@ -528,20 +528,108 @@ ipcMain.handle(
 
 // IPC Handlers for import/export functionality
 ipcMain.handle("export-config", async () => {
+  // Ask if user wants internal format or MCP spec format
+  const formatResult = await dialog.showMessageBox({
+    type: "question",
+    buttons: ["MCP Format", "Internal Format", "Cancel"],
+    defaultId: 0,
+    title: "Export Format",
+    message: "Select export format",
+    detail:
+      "MCP Format: Standard format for use with MCP clients\nInternal Format: Complete configuration with all metadata",
+  });
+
+  if (formatResult.response === 2) {
+    // Cancel
+    return false;
+  }
+
+  const isMcpFormat = formatResult.response === 0;
+  const fileExtension = isMcpFormat ? "json" : "backup.json";
+  const defaultFilename = isMcpFormat
+    ? "mcp-config.json"
+    : "mcp-palette-backup.json";
+
   const result = await dialog.showSaveDialog({
     title: "Export Configuration",
-    defaultPath: path.join(app.getPath("downloads"), "mcp-config.json"),
-    filters: [{ name: "JSON Files", extensions: ["json"] }],
+    defaultPath: path.join(app.getPath("downloads"), defaultFilename),
+    filters: [
+      { name: "JSON Files", extensions: [fileExtension.split(".").pop()] },
+    ],
   });
 
   if (!result.canceled) {
-    const config = {
-      serverMasterList: store.get("serverMasterList"),
-      profiles: store.get("profiles"),
-      storeVersion: store.get("storeVersion") || "2.0.0",
-    };
+    if (isMcpFormat) {
+      // Export in MCP format
+      const serverMasterList = store.get("serverMasterList");
+      const activeProfile = getProfileByIdOrName(store.get("activeProfile"));
 
-    fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2));
+      if (!activeProfile) {
+        throw new Error("No active profile found");
+      }
+
+      // Build MCP config format
+      const mcpServers = {};
+
+      // Only add enabled servers from the active profile
+      Object.entries(activeProfile.servers || {}).forEach(
+        ([serverId, profileServer]) => {
+          if (!profileServer.enabled) return;
+
+          const masterServer = serverMasterList[serverId];
+          if (!masterServer) return;
+
+          // Create a clean configuration with overrides applied
+          let serverConfig = { ...masterServer };
+          if (profileServer.overrides) {
+            // Apply overrides
+            if (profileServer.overrides.name)
+              serverConfig.name = profileServer.overrides.name;
+            if (profileServer.overrides.command)
+              serverConfig.command = profileServer.overrides.command;
+            if (profileServer.overrides.args)
+              serverConfig.args = [...profileServer.overrides.args];
+            if (profileServer.overrides.env) {
+              serverConfig.env = {
+                ...serverConfig.env,
+                ...profileServer.overrides.env,
+              };
+            }
+          }
+
+          // Use server name as the key
+          const serverName =
+            serverConfig.name || serverConfig.originalId || serverId;
+
+          // Create MCP format entry
+          mcpServers[serverName] = {
+            command: serverConfig.command,
+            args: serverConfig.args,
+          };
+
+          // Add env if it exists
+          if (serverConfig.env && Object.keys(serverConfig.env).length > 0) {
+            mcpServers[serverName].env = serverConfig.env;
+          }
+        },
+      );
+
+      // Write MCP format
+      fs.writeFileSync(
+        result.filePath,
+        JSON.stringify({ mcpServers }, null, 2),
+      );
+    } else {
+      // Export in internal format (full backup)
+      const config = {
+        serverMasterList: store.get("serverMasterList"),
+        profiles: store.get("profiles"),
+        activeProfile: store.get("activeProfile"),
+        storeVersion: store.get("storeVersion") || "2.0.0",
+      };
+
+      fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2));
+    }
     return true;
   }
   return false;
@@ -559,8 +647,104 @@ ipcMain.handle("import-config", async () => {
       const data = fs.readFileSync(result.filePaths[0], "utf8");
       const importedConfig = JSON.parse(data);
 
+      // Check if this is an MCP format config (has mcpServers property)
+      if (importedConfig.mcpServers) {
+        console.log("Detected MCP format configuration");
+
+        const mcpServers = importedConfig.mcpServers;
+        const existingServerMasterList = store.get("serverMasterList");
+        const updatedServerMasterList = { ...existingServerMasterList };
+        const importedServerIds = [];
+
+        // Process each server in the MCP config
+        for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
+          // Check if we have a server with this name in the master list
+          let existingServerId = null;
+
+          // Find existing server by name or originalId
+          for (const [uuid, server] of Object.entries(
+            existingServerMasterList,
+          )) {
+            if (
+              server.name === serverName ||
+              server.originalId === serverName
+            ) {
+              existingServerId = uuid;
+              break;
+            }
+          }
+
+          if (existingServerId) {
+            // Update existing server
+            updatedServerMasterList[existingServerId] = {
+              ...updatedServerMasterList[existingServerId],
+              ...serverConfig,
+              name: serverName, // Ensure name is preserved
+            };
+            importedServerIds.push(existingServerId);
+          } else {
+            // Create new server with UUID
+            const newServerId = generateUUID();
+            updatedServerMasterList[newServerId] = {
+              name: serverName,
+              command: serverConfig.command,
+              args: serverConfig.args || [],
+              env: serverConfig.env || {},
+              originalId: serverName,
+            };
+            importedServerIds.push(newServerId);
+          }
+        }
+
+        // Update the server master list
+        store.set("serverMasterList", updatedServerMasterList);
+
+        // Create a new profile for the imported MCP config
+        const profiles = store.get("profiles");
+        const profileName = "Imported MCP Config";
+
+        // Check if profile already exists
+        const existingProfileIndex = profiles.findIndex(
+          (p) => p.name === profileName,
+        );
+
+        const profileServers = {};
+        importedServerIds.forEach((serverId) => {
+          profileServers[serverId] = {
+            enabled: true,
+            overrides: {},
+          };
+        });
+
+        if (existingProfileIndex >= 0) {
+          // Update existing profile
+          profiles[existingProfileIndex].servers = profileServers;
+        } else {
+          // Create new profile
+          profiles.push({
+            id: generateUUID(),
+            name: profileName,
+            servers: profileServers,
+          });
+        }
+
+        // Update profiles
+        store.set("profiles", profiles);
+
+        // Set the imported profile as active
+        const profileToActivate =
+          existingProfileIndex >= 0
+            ? profiles[existingProfileIndex]
+            : profiles[profiles.length - 1];
+        store.set("activeProfile", profileToActivate.name);
+
+        return {
+          serverMasterList: updatedServerMasterList,
+          profiles: profiles,
+        };
+      }
       // Handle both old and new format imports
-      if (importedConfig.serverMasterList) {
+      else if (importedConfig.serverMasterList) {
         // Check if imported config has UUIDs
         let hasUUIDs = true;
 
@@ -624,6 +808,17 @@ ipcMain.handle("import-config", async () => {
           store.set("serverMasterList", newServerMasterList);
           store.set("profiles", newProfiles);
           store.set("storeVersion", "2.0.0");
+
+          // Set active profile if specified
+          if (importedConfig.activeProfile) {
+            // Find the new profile that corresponds to the old active profile
+            const activeProfile = newProfiles.find(
+              (p) => p.name === importedConfig.activeProfile,
+            );
+            if (activeProfile) {
+              store.set("activeProfile", activeProfile.name);
+            }
+          }
         } else {
           // Already has UUIDs, just import directly
           store.set("serverMasterList", importedConfig.serverMasterList);
@@ -634,6 +829,11 @@ ipcMain.handle("import-config", async () => {
             store.set("storeVersion", importedConfig.storeVersion);
           } else {
             store.set("storeVersion", "2.0.0");
+          }
+
+          // Set active profile if specified
+          if (importedConfig.activeProfile) {
+            store.set("activeProfile", importedConfig.activeProfile);
           }
         }
       } else if (Array.isArray(importedConfig)) {
@@ -680,6 +880,11 @@ ipcMain.handle("import-config", async () => {
         store.set("serverMasterList", serverMasterList);
         store.set("profiles", profiles);
         store.set("storeVersion", "2.0.0");
+
+        // Set first profile as active
+        if (profiles.length > 0) {
+          store.set("activeProfile", profiles[0].name);
+        }
       }
 
       return {

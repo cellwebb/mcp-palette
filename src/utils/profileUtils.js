@@ -10,24 +10,22 @@ import { generateUUID, isValidUUID } from "./helpers";
  * - Only includes enabled servers
  * - Inherits values from master servers
  * - Applies overrides from profile configuration
+ * - Formats output according to the MCP specification format
  *
  * @param {Object} profile - The profile object with server configurations
  * @param {Object} masterServers - Master server configurations
- * @returns {Object} - Final configuration object
+ * @returns {Object} - Final configuration object formatted for MCP
  */
 export const generateFinalProfileConfig = (profile, masterServers) => {
   if (!profile || !profile.servers || !masterServers) {
     return {
-      id: profile?.id || generateUUID(),
-      name: profile?.name || "Unknown Profile",
+      mcpServers: {},
     };
   }
 
-  // Create a clean output object
+  // Create a clean output object in the MCP specification format
   const finalConfig = {
-    id: profile.id,
-    name: profile.name,
-    servers: {},
+    mcpServers: {},
   };
 
   // Process each server in the profile
@@ -47,13 +45,24 @@ export const generateFinalProfileConfig = (profile, masterServers) => {
       applyOverrides(serverConfig, profileServer.overrides);
     }
 
-    // Remove internal implementation details but preserve original ID
+    // Remove internal implementation details
     if ("id" in serverConfig) {
       delete serverConfig.id;
     }
 
-    // Add to final configuration
-    finalConfig.servers[serverId] = serverConfig;
+    // Get the server name to use as the key (use originalId as fallback)
+    const serverKey = serverConfig.name || serverConfig.originalId || serverId;
+
+    // Extract only the command and args properties for the MCP spec format
+    finalConfig.mcpServers[serverKey] = {
+      command: serverConfig.command,
+      args: serverConfig.args,
+    };
+
+    // Include environment variables if they exist
+    if (serverConfig.env && Object.keys(serverConfig.env).length > 0) {
+      finalConfig.mcpServers[serverKey].env = serverConfig.env;
+    }
   });
 
   return finalConfig;
@@ -63,7 +72,9 @@ export const generateFinalProfileConfig = (profile, masterServers) => {
  * Converts a final (user-facing) profile configuration back to the internal format
  * by calculating the overrides needed to achieve the same configuration
  *
- * @param {Object} finalConfig - The final profile configuration
+ * Handles both the new MCP spec format and the legacy format for backward compatibility
+ *
+ * @param {Object} finalConfig - The final profile configuration (in mcpServers format or legacy format)
  * @param {Object} currentProfile - The current internal profile configuration
  * @param {Object} masterServers - The master server configurations
  * @returns {Object} - Updated internal profile configuration
@@ -76,33 +87,66 @@ export const convertFinalConfigToInternal = (
   // Create a new profile with existing settings
   const updatedProfile = {
     id: currentProfile.id || generateUUID(),
-    name: finalConfig.name,
+    name: currentProfile.name, // Keep the original name
     servers: { ...currentProfile.servers }, // Start with current servers
   };
 
+  // Determine if we're using the new format (mcpServers) or legacy format
+  const isNewFormat = finalConfig.mcpServers !== undefined;
+  const serverEntries = isNewFormat
+    ? Object.entries(finalConfig.mcpServers || {})
+    : Object.entries(finalConfig.servers || {});
+
   // Add or update servers from the final config
-  if (finalConfig.servers) {
-    Object.entries(finalConfig.servers).forEach(([serverId, serverConfig]) => {
-      const masterServer = masterServers[serverId];
+  serverEntries.forEach(([serverKey, serverConfig]) => {
+    // In the new format, serverKey is the name, not the UUID
+    // We need to find the corresponding server UUID in the master list
+    let serverId;
 
-      // Skip if master server doesn't exist
-      if (!masterServer) return;
+    if (isNewFormat) {
+      // Find the server in the master list by name or originalId
+      const matchingServer = Object.entries(masterServers).find(
+        ([_, server]) =>
+          server.name === serverKey || server.originalId === serverKey,
+      );
 
-      // Calculate overrides by comparing with master server
-      const overrides = calculateOverrides(masterServer, serverConfig);
+      if (!matchingServer) return; // Skip if we can't find the server
+      serverId = matchingServer[0]; // Get the UUID
+    } else {
+      // In the legacy format, the key is already the UUID
+      serverId = serverKey;
+    }
 
-      // Create or update server entry
-      updatedProfile.servers[serverId] = {
-        enabled: true, // It's in the final config so it's enabled
-        overrides,
-      };
-    });
-  }
+    const masterServer = masterServers[serverId];
+
+    // Skip if master server doesn't exist
+    if (!masterServer) return;
+
+    // Calculate overrides by comparing with master server
+    const overrides = calculateOverrides(masterServer, serverConfig);
+
+    // Create or update server entry
+    updatedProfile.servers[serverId] = {
+      enabled: true, // It's in the final config so it's enabled
+      overrides,
+    };
+  });
 
   // Mark any servers not in final config as disabled (but don't remove them)
   if (currentProfile.servers) {
     Object.keys(currentProfile.servers).forEach((serverId) => {
-      if (!finalConfig.servers || !finalConfig.servers[serverId]) {
+      const masterServer = masterServers[serverId];
+      if (!masterServer) return; // Skip if server no longer exists in master list
+
+      const serverName =
+        masterServer.name || masterServer.originalId || serverId;
+
+      // Check if this server is in the final config
+      const isInConfig = isNewFormat
+        ? finalConfig.mcpServers && finalConfig.mcpServers[serverName]
+        : finalConfig.servers && finalConfig.servers[serverId];
+
+      if (!isInConfig) {
         if (updatedProfile.servers[serverId]) {
           updatedProfile.servers[serverId].enabled = false;
         }
