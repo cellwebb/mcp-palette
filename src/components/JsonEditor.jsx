@@ -165,7 +165,7 @@ const JsonEditor = ({
         <div className="json-editor-title">
           <h2>
             {isProfileView && profileName
-              ? `MCP Configuration JSON - Profile: ${profileName}`
+              ? `MCP Configuration JSON - ${profileName}`
               : "MCP Configuration JSON - Server Master List"}{" "}
             <span className="readonly-badge">🔒 Read-Only</span>
           </h2>

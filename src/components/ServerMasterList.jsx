@@ -41,6 +41,11 @@ const ServerMasterList = ({
     <div className="server-master-list">
       <div className="server-list-header">
         <h2>Server Master List</h2>
+        <div className="server-list-actions">
+          <button className="button button-primary" onClick={onAddServer}>
+            Add New Server
+          </button>
+        </div>
       </div>
 
       {Object.entries(servers).map(([serverId, serverData]) => {
