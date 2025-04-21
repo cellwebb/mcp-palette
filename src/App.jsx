@@ -268,9 +268,18 @@ const App = () => {
     try {
       const updatedMasterList = await window.api.updateMasterServer(
         serverId,
-        updatedServer,
+        updatedServer
       );
       setServerMasterList(updatedMasterList);
+      
+      // Reset state to return to the master list view
+      setSelectedServerMaster(null);
+      setIsAddingServer(false);
+      
+      // Show success message
+      await window.api.safeAlert(
+        `Server "${updatedServer.name}" updated successfully!`
+      );
     } catch (error) {
       console.error("Failed to update server:", error);
       await window.api.safeAlert("Failed to update server: " + error.message);
