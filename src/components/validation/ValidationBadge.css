@@ -18,21 +18,10 @@
   filter: brightness(0.95);
 }
 
-.validation-badge-valid {
-  background-color: #28a745;
-  color: white;
-  border: none;
-}
-
+/* Only keep the warning badge style, others use global classes */
 .validation-badge-warning {
   background-color: #ffc107;
   color: #212529;
-  border: none;
-}
-
-.validation-badge-error {
-  background-color: #dc3545;
-  color: white;
   border: none;
 }
 

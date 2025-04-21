@@ -31,7 +31,7 @@ describe("ValidationBadge", () => {
 
     // Badge should have valid class
     const badge = screen.getByText("Valid").closest(".validation-badge");
-    expect(badge).toHaveClass("validation-badge-valid");
+    expect(badge).toHaveClass("validation-success");
   });
 
   test('renders "valid with warnings" state for valid result with warnings', () => {
@@ -67,7 +67,7 @@ describe("ValidationBadge", () => {
 
     // Badge should have error class
     const badge = screen.getByText("Invalid").closest(".validation-badge");
-    expect(badge).toHaveClass("validation-badge-error");
+    expect(badge).toHaveClass("validation-error");
   });
 
   test("shows details popup when showDetails is true and has warnings/errors", () => {

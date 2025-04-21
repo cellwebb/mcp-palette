@@ -28,8 +28,11 @@ const ValidationBadge = ({
 
   const { valid, errors = [], warnings = [] } = validationResult;
 
-  // Determine badge type based on validation results
+  // Determine badge type and CSS class
   let badgeType = valid ? (warnings.length > 0 ? "warning" : "valid") : "error";
+  let badgeClass = badgeType === "valid" ? "validation-success" : 
+                 badgeType === "error" ? "validation-error" : 
+                 `validation-badge-${badgeType}`;
 
   // Badge text and icon based on type
   const badgeInfo = {
@@ -40,7 +43,7 @@ const ValidationBadge = ({
 
   return (
     <div
-      className={`validation-badge validation-badge-${badgeType}`}
+      className={`validation-badge ${badgeClass}`}
       onClick={onClick}
     >
       <span className="validation-badge-icon">{badgeInfo[badgeType].icon}</span>
