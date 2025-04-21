@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import MonacoEditor from "react-monaco-editor";
-import * as monaco from "monaco-editor";
 
 const JsonEditor = ({
   json,
@@ -175,14 +174,12 @@ const JsonEditor = ({
               <>
                 This view displays the effective configuration with only enabled
                 servers, showing values inherited from the master list with
-                profile-specific overrides applied. You can copy this JSON but
-                not edit it directly.
+                profile-specific overrides applied.
               </>
             ) : (
               <>
                 This view displays the complete server master list containing
-                all available server configurations in MCP-compliant format. You
-                can copy this JSON but not edit it directly.
+                all available server configurations in MCP-compliant format.
               </>
             )}
           </p>
