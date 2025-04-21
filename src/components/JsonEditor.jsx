@@ -9,6 +9,7 @@ const JsonEditor = ({
   isProfileView = true,
   profileName = "",
   serverName = "",
+  hideTitle = false,
 }) => {
   const [editorContent, setEditorContent] = useState(json);
   const [error, setError] = useState(null);
@@ -183,13 +184,16 @@ const JsonEditor = ({
   return (
     <div className="json-editor">
       <div className="json-editor-header">
+        {!hideTitle && (
         <div className="json-editor-title">
           <h2>
             {isProfileView && profileName
               ? `MCP Configuration JSON - Profile: ${profileName}`
-              : serverName
-                ? `MCP Configuration JSON - Server: ${serverName}`
-                : "MCP Configuration JSON - All Servers"}{" "}
+              : serverName && profileName
+                ? `MCP Configuration JSON - Server: ${serverName} (Profile: ${profileName})`
+                : serverName
+                  ? `MCP Configuration JSON - Server: ${serverName}`
+                  : "MCP Configuration JSON - All Servers"}{" "}
             <span className="readonly-badge">🔒 Read-Only</span>
             {validationStatus.valid ? (
               <span className="validation-badge validation-success">
@@ -221,6 +225,7 @@ const JsonEditor = ({
             )}
           </p>
         </div>
+        )}
         <div className="json-editor-actions">
           <div className="json-editor-actions-container">
             <div

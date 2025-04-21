@@ -4,6 +4,13 @@
   height: 100%;
 }
 
+.server-json-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+  max-width: 600px;
+}
+
 .server-json-header {
   display: flex;
   justify-content: space-between;

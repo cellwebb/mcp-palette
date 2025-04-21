@@ -378,6 +378,7 @@ const ProfileServerOverridesForm = ({
         server={generatePreviewJson()} 
         serverId={serverId}
         onBack={handleBackFromJson}
+        profileName={profileName}
       />
     );
   }

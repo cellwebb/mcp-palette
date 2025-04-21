@@ -11,7 +11,7 @@ import "./ServerJsonViewer.css";
 /**
  * Component for viewing server configuration as JSON with validation
  */
-const ServerJsonViewer = ({ server, serverId, onBack, onUpdateServer }) => {
+const ServerJsonViewer = ({ server, serverId, onBack, onUpdateServer, profileName }) => {
   // State for validation and UI
   const [validationResult, setValidationResult] = useState(null);
   const [showValidationDetails, setShowValidationDetails] = useState(false);
@@ -65,9 +65,15 @@ const ServerJsonViewer = ({ server, serverId, onBack, onUpdateServer }) => {
       <div className="server-json-header">
         <div className="server-json-title">
           <h2>
-            MCP Configuration JSON - Server: {server.name}{" "}
+            {profileName 
+              ? `MCP Configuration JSON - Server: ${server.name} (Profile: ${profileName})` 
+              : `MCP Configuration JSON - Server: ${server.name}`}{" "}
             <span className="readonly-badge">🔒 Read-Only</span>
           </h2>
+          <p className="server-json-subtitle">
+            This view displays the selected server configuration in MCP-compliant format.
+            {profileName && ' All profile-specific overrides have been applied to the base configuration.'}
+          </p>
         </div>
 
         <div className="server-json-controls">
@@ -94,7 +100,14 @@ const ServerJsonViewer = ({ server, serverId, onBack, onUpdateServer }) => {
       )}
 
       {/* JSON Editor */}
-      <JsonEditor json={JSON.stringify(mcpJson, null, 2)} readOnly={true} />
+      <JsonEditor 
+        json={JSON.stringify(mcpJson, null, 2)} 
+        readOnly={true} 
+        serverName={server.name}
+        profileName={profileName}
+        isProfileView={false}
+        hideTitle={true}
+      />
     </div>
   );
 };
