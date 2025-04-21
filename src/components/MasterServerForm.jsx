@@ -149,11 +149,12 @@ const MasterServerForm = ({
       serverData.originalId = formData.name;
     }
 
-    // Remove empty properties
-    if (formData.args && formData.args.length === 0) {
-      delete serverData.args;
+    // Ensure args is always an array (never delete it)
+    if (!serverData.args) {
+      serverData.args = [];
     }
 
+    // Remove empty env property if no environment variables
     if (formData.env && Object.keys(formData.env).length === 0) {
       delete serverData.env;
     }
