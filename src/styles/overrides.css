@@ -1,0 +1,37 @@
+/* Styles for removed environment variables */
+.removed-env-vars {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f8f8f8;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+}
+
+.removed-env-vars h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  color: #605e5c;
+}
+
+.removed-env-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.removed-env-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background-color: #fde7e9;
+  border: 1px solid #f9c0c5;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.removed-env-item code {
+  text-decoration: line-through;
+  color: #c50f1f;
+}

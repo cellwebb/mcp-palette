@@ -86,35 +86,9 @@ const ServerMasterList = ({
                       icon: "📋",
                     },
                     {
-                      label: "View JSON",
+                      label: "Preview JSON",
                       action: () => onViewServerJson(serverId),
                       icon: "📑",
-                    },
-                    {
-                      label: "Restore Defaults",
-                      action: async () => {
-                        const confirmed = await window.api.safeConfirm(
-                          `Restore default configuration for server "${serverName}"?`,
-                        );
-                        if (confirmed) {
-                          // Call restore function passed as prop
-                          onRestoreDefaults(serverId);
-                        }
-                      },
-                      icon: "🔄",
-                    },
-                    {
-                      label: "Delete Server",
-                      action: async () => {
-                        const confirmed = await window.api.safeConfirm(
-                          `Are you sure you want to delete the server "${serverName}"?`,
-                        );
-                        if (confirmed) {
-                          onDeleteServer(serverId);
-                        }
-                      },
-                      icon: "🗑️",
-                      type: "danger",
                     },
                   ]}
                 />

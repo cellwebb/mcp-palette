@@ -67,6 +67,42 @@ Build the application for your current platform:
 npm run electron:build
 ```
 
+## 🧪 Testing
+
+MCP Palette includes comprehensive testing capabilities, powered by [Jest](https://jestjs.io/) and [React Testing Library](https://testing-library.com/):
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode
+npm test:watch
+
+# Test coverage
+npm test:coverage
+
+# Run specific test suites
+npm test:validator  # MCP validation tests
+npm test:components # Component tests
+npm test:validation # Validation tests
+```
+
+**Testing Notes:**
+- All necessary dev dependencies (`jest`, `@testing-library/react`, `babel-jest`, etc.) are included in `package.json`.
+- File and style mocks are provided in `__mocks__/` for robust component testing.
+- Babel is used for modern JS/React syntax support (see `.babelrc`).
+
+## 🛠️ Babel
+
+MCP Palette uses [Babel](https://babeljs.io/) (see `.babelrc`) to enable modern JavaScript and React features, and to support Jest-based testing.
+
+## ⚡️ What’s New in 1.2.0
+
+- Full Jest + React Testing Library support
+- Babel configuration for modern JS/React and tests
+- File/style mocks for testing
+- Updated documentation
+
 ## 🧰 Architecture
 
 MCP Palette uses a "Server Master List + Profile Overrides" architecture:

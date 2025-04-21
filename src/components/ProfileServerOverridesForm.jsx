@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import ServerJsonViewer from "./ServerJsonViewer";
 
 const ProfileServerOverridesForm = ({
   serverId,
@@ -21,6 +22,10 @@ const ProfileServerOverridesForm = ({
     args: false,
     env: {},
   });
+
+  // Track environment variables that should be removed
+  const [removedEnvVars, setRemovedEnvVars] = useState({});
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
 
   const [newArg, setNewArg] = useState("");
   const [newEnvKey, setNewEnvKey] = useState("");
@@ -67,7 +72,10 @@ const ProfileServerOverridesForm = ({
           const newEnv = { ...(masterServer.env || {}) };
           Object.entries(profileServer.overrides.env).forEach(
             ([key, value]) => {
-              newEnv[key] = value;
+              // Skip null values which indicate deletion
+              if (value !== null) {
+                newEnv[key] = value;
+              }
             },
           );
 
@@ -75,9 +83,21 @@ const ProfileServerOverridesForm = ({
 
           const envOverrides = {};
           Object.keys(profileServer.overrides.env).forEach((key) => {
-            envOverrides[key] = true;
+            // If the value is not null, it's a normal override
+            if (profileServer.overrides.env[key] !== null) {
+              envOverrides[key] = true;
+            }
           });
           setOverrideFields((prev) => ({ ...prev, env: envOverrides }));
+          
+          // Track removed env vars
+          const removedVars = {};
+          Object.entries(profileServer.overrides.env).forEach(([key, value]) => {
+            if (value === null) {
+              removedVars[key] = true;
+            }
+          });
+          setRemovedEnvVars(removedVars);
         }
       }
     } else if (masterServer) {
@@ -96,6 +116,9 @@ const ProfileServerOverridesForm = ({
         args: false,
         env: {},
       });
+      
+      // No removed env vars
+      setRemovedEnvVars({});
     }
   }, [masterServer, profileServer]);
 
@@ -190,6 +213,15 @@ const ProfileServerOverridesForm = ({
   const handleAddEnvVar = () => {
     if (!newEnvKey.trim()) return;
 
+    // If this env var was previously removed, un-remove it
+    if (removedEnvVars[newEnvKey]) {
+      setRemovedEnvVars((prev) => {
+        const updated = { ...prev };
+        delete updated[newEnvKey];
+        return updated;
+      });
+    }
+
     setFormData((prev) => ({
       ...prev,
       env: {
@@ -213,6 +245,7 @@ const ProfileServerOverridesForm = ({
 
   // Handle removing an environment variable
   const handleRemoveEnvVar = (key) => {
+    // First, remove from form data
     setFormData((prev) => {
       const { [key]: removed, ...restEnv } = prev.env;
       return {
@@ -221,6 +254,15 @@ const ProfileServerOverridesForm = ({
       };
     });
 
+    // If this is a master server env var, mark it as removed in overrides
+    if (masterServer && masterServer.env && masterServer.env[key] !== undefined) {
+      setRemovedEnvVars(prev => ({
+        ...prev,
+        [key]: true
+      }));
+    }
+
+    // Always remove from override fields
     setOverrideFields((prev) => {
       const { [key]: removed, ...restEnvOverrides } = prev.env;
       return {
@@ -248,10 +290,17 @@ const ProfileServerOverridesForm = ({
 
     // Build env overrides
     const envOverrides = {};
+    
+    // Add normal env var overrides
     Object.entries(overrideFields.env).forEach(([key, isOverridden]) => {
       if (isOverridden && formData.env[key] !== undefined) {
         envOverrides[key] = formData.env[key];
       }
+    });
+    
+    // Add removal overrides (explicit null values)
+    Object.keys(removedEnvVars).forEach(key => {
+      envOverrides[key] = null; // Set to null to indicate deletion
     });
 
     if (Object.keys(envOverrides).length > 0) {
@@ -272,6 +321,67 @@ const ProfileServerOverridesForm = ({
       overrides,
     });
   };
+
+  // Generate preview JSON based on current form state and overrides
+  const generatePreviewJson = () => {
+    // Create a server object with the effective configuration
+    const effectiveServer = { ...masterServer };
+    
+    // Apply overrides from the form data based on which fields are being overridden
+    if (overrideFields.name) {
+      effectiveServer.name = formData.name;
+    }
+    
+    if (overrideFields.command) {
+      effectiveServer.command = formData.command;
+    }
+    
+    if (overrideFields.args) {
+      effectiveServer.args = [...formData.args];
+    }
+    
+    // Handle environment variables
+    effectiveServer.env = { ...masterServer.env };
+    
+    // Apply environment variable overrides
+    Object.entries(overrideFields.env).forEach(([key, isOverridden]) => {
+      if (isOverridden && formData.env[key] !== undefined) {
+        effectiveServer.env[key] = formData.env[key];
+      }
+    });
+    
+    // Remove deleted environment variables
+    Object.keys(removedEnvVars).forEach(key => {
+      delete effectiveServer.env[key];
+    });
+    
+    // If env is empty, remove it
+    if (effectiveServer.env && Object.keys(effectiveServer.env).length === 0) {
+      delete effectiveServer.env;
+    }
+    
+    return effectiveServer;
+  };
+
+  // Handle JSON preview
+  const handleViewJson = () => {
+    setShowJsonPreview(true);
+  };
+
+  const handleBackFromJson = () => {
+    setShowJsonPreview(false);
+  };
+
+  if (showJsonPreview) {
+    return (
+      <ServerJsonViewer 
+        server={generatePreviewJson()} 
+        serverId={serverId}
+        onBack={handleBackFromJson}
+        profileName={profileName}
+      />
+    );
+  }
 
   if (!masterServer) {
     return (
@@ -484,6 +594,46 @@ const ProfileServerOverridesForm = ({
               ))}
             </div>
           )}
+          
+          {/* Show removed env vars */}
+          {Object.keys(removedEnvVars).length > 0 && (
+            <div className="removed-env-vars">
+              <h4>Removed Environment Variables</h4>
+              <div className="removed-env-list">
+                {Object.keys(removedEnvVars).map(key => (
+                  <div key={key} className="removed-env-item">
+                    <code>{key}</code>
+                    <button
+                      type="button"
+                      className="button button-small"
+                      onClick={() => {
+                        // Restore this env var
+                        const masterValue = masterServer.env ? masterServer.env[key] : '';
+                        
+                        // Add back to form data
+                        setFormData(prev => ({
+                          ...prev,
+                          env: {
+                            ...prev.env,
+                            [key]: masterValue
+                          }
+                        }));
+                        
+                        // Remove from removed list
+                        setRemovedEnvVars(prev => {
+                          const updated = { ...prev };
+                          delete updated[key];
+                          return updated;
+                        });
+                      }}
+                    >
+                      Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="form-actions">
@@ -496,6 +646,13 @@ const ProfileServerOverridesForm = ({
             onClick={onCancel}
           >
             Cancel
+          </button>
+          <button
+            type="button"
+            className="button button-info"
+            onClick={handleViewJson}
+          >
+            Preview JSON
           </button>
         </div>
       </form>
