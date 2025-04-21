@@ -823,6 +823,7 @@ const App = () => {
                       )}
                       readOnly={true}
                       isProfileView={true}
+                      profileName={activeProfile}
                       onViewServerJson={(serverId) => {
                         setSelectedServerMaster(serverId);
                         setViewingServerJson(true);
@@ -858,10 +859,11 @@ const App = () => {
                     <div className="server-json-viewer">
                       <div className="server-json-header">
                         <h2>
-                          Server JSON:{" "}
+                          Server:{" "}
                           {getServerDisplayName(
                             serverMasterList[selectedServerMaster],
                           )}
+                          <span className="readonly-badge">🔒 Read-Only</span>
                         </h2>
                         <button
                           className="button button-secondary"

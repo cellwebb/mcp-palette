@@ -7,6 +7,7 @@ const JsonEditor = ({
   onViewServerJson,
   onRestoreDefaults,
   isProfileView = true,
+  profileName = "",
 }) => {
   const [editorContent, setEditorContent] = useState(json);
   const [error, setError] = useState(null);
@@ -164,7 +165,9 @@ const JsonEditor = ({
       <div className="json-editor-header">
         <div className="json-editor-title">
           <h2>
-            MCP Configuration JSON{" "}
+            {isProfileView && profileName
+              ? `Profile: ${profileName}`
+              : "Server Master List"}{" "}
             <span className="readonly-badge">🔒 Read-Only</span>
           </h2>
           <p className="json-editor-subtitle">
@@ -178,8 +181,8 @@ const JsonEditor = ({
             ) : (
               <>
                 This view displays the complete server master list containing
-                all available server configurations. You can copy this JSON but
-                not edit it directly.
+                all available server configurations in MCP-compliant format. You
+                can copy this JSON but not edit it directly.
               </>
             )}
           </p>

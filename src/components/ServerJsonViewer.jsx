@@ -34,7 +34,7 @@ const ServerJsonViewer = ({ server, serverId, onBack }) => {
     <div className="server-json-viewer">
       <div className="server-json-header">
         <h2>
-          MCP Configuration JSON: {server.name}{" "}
+          Server: {server.name}{" "}
           <span className="readonly-badge">🔒 Read-Only</span>
         </h2>
         <div className="server-json-actions">
