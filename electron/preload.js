@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-// Create safer versions of alert/confirm that don't use window.prompt
+// Enhanced safer versions of alert/confirm that don't use window.prompt
 const safeDialogs = {
   alert: (message) => {
     return new Promise((resolve) => {
@@ -26,8 +26,22 @@ const safeDialogs = {
       content.style.minWidth = "300px";
       content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
 
+      // Create header for better visibility
+      const header = document.createElement("div");
+      header.className = "modal-header";
+      header.style.marginBottom = "15px";
+
+      const title = document.createElement("h3");
+      title.textContent = "Notice";
+      title.style.margin = "0";
+      title.style.color = "#333";
+
+      header.appendChild(title);
+      content.appendChild(header);
+
       const messageEl = document.createElement("p");
       messageEl.textContent = message;
+      messageEl.style.margin = "0 0 15px 0";
 
       const button = document.createElement("button");
       button.textContent = "OK";
@@ -41,8 +55,19 @@ const safeDialogs = {
       button.style.cursor = "pointer";
       button.style.float = "right";
 
+      // Also close on Escape key
+      const keyHandler = (e) => {
+        if (e.key === "Escape") {
+          document.body.removeChild(dialog);
+          document.removeEventListener("keydown", keyHandler);
+          resolve(true);
+        }
+      };
+      document.addEventListener("keydown", keyHandler);
+
       button.onclick = () => {
         document.body.removeChild(dialog);
+        document.removeEventListener("keydown", keyHandler);
         resolve(true);
       };
 
@@ -50,6 +75,9 @@ const safeDialogs = {
       content.appendChild(button);
       dialog.appendChild(content);
       document.body.appendChild(dialog);
+
+      // Auto-focus the button
+      setTimeout(() => button.focus(), 50);
     });
   },
 
@@ -74,11 +102,25 @@ const safeDialogs = {
       content.style.backgroundColor = "white";
       content.style.padding = "20px";
       content.style.borderRadius = "4px";
-      content.style.minWidth = "300px";
+      content.style.minWidth = "350px";
       content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+
+      // Create header for better visibility
+      const header = document.createElement("div");
+      header.className = "modal-header";
+      header.style.marginBottom = "15px";
+
+      const title = document.createElement("h3");
+      title.textContent = "Confirmation";
+      title.style.margin = "0";
+      title.style.color = "#333";
+
+      header.appendChild(title);
+      content.appendChild(header);
 
       const messageEl = document.createElement("p");
       messageEl.textContent = message;
+      messageEl.style.margin = "0 0 20px 0";
 
       const buttonContainer = document.createElement("div");
       buttonContainer.style.display = "flex";
@@ -100,19 +142,35 @@ const safeDialogs = {
       confirmButton.textContent = "Confirm";
       confirmButton.className = "button button-primary";
       confirmButton.style.padding = "8px 16px";
-      confirmButton.style.backgroundColor = "#007bff";
+      confirmButton.style.backgroundColor = "#dc3545"; // Red for confirmation actions
       confirmButton.style.color = "white";
       confirmButton.style.border = "none";
       confirmButton.style.borderRadius = "4px";
       confirmButton.style.cursor = "pointer";
 
+      // Handle keyboard events
+      const keyHandler = (e) => {
+        if (e.key === "Escape") {
+          document.body.removeChild(dialog);
+          document.removeEventListener("keydown", keyHandler);
+          resolve(false);
+        } else if (e.key === "Enter") {
+          document.body.removeChild(dialog);
+          document.removeEventListener("keydown", keyHandler);
+          resolve(true);
+        }
+      };
+      document.addEventListener("keydown", keyHandler);
+
       cancelButton.onclick = () => {
         document.body.removeChild(dialog);
+        document.removeEventListener("keydown", keyHandler);
         resolve(false);
       };
 
       confirmButton.onclick = () => {
         document.body.removeChild(dialog);
+        document.removeEventListener("keydown", keyHandler);
         resolve(true);
       };
 
@@ -122,6 +180,9 @@ const safeDialogs = {
       content.appendChild(buttonContainer);
       dialog.appendChild(content);
       document.body.appendChild(dialog);
+
+      // Auto-focus the cancel button (safer default)
+      setTimeout(() => cancelButton.focus(), 50);
     });
   },
 };
@@ -129,6 +190,10 @@ const safeDialogs = {
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld("api", {
+  // Server ID lookup - removed frontend UUID generation
+  findServerByOriginalId: (originalId) =>
+    ipcRenderer.invoke("find-server-by-original-id", originalId),
+
   // Server Master List management
   getServerMasterList: () => ipcRenderer.invoke("get-server-master-list"),
   addMasterServer: (serverData) =>
@@ -137,24 +202,29 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("update-master-server", { serverId, updatedServer }),
   deleteMasterServer: (serverId) =>
     ipcRenderer.invoke("delete-master-server", serverId),
-  getEffectiveServerConfig: (serverId, profileName) =>
+  getEffectiveServerConfig: (serverId, profileId) =>
     ipcRenderer.invoke("get-effective-server-config", {
       serverId,
-      profileName,
+      profileId,
     }),
 
   // Profile management
   getProfiles: () => ipcRenderer.invoke("get-profiles"),
   getActiveProfile: () => ipcRenderer.invoke("get-active-profile"),
-  setActiveProfile: (profileName) =>
-    ipcRenderer.invoke("set-active-profile", profileName),
+  setActiveProfile: (profileId) =>
+    ipcRenderer.invoke("set-active-profile", profileId),
   addProfile: (profile) => ipcRenderer.invoke("add-profile", profile),
   updateProfile: (profileName, updatedProfile) =>
     ipcRenderer.invoke("update-profile", { profileName, updatedProfile }),
-  renameProfile: (oldName, newName) =>
-    ipcRenderer.invoke("rename-profile", { oldName, newName }),
-  deleteProfile: (profileName) =>
-    ipcRenderer.invoke("delete-profile", profileName),
+  renameProfile: async (params) => {
+    // Ensure params is an object with oldName and newName properties
+    if (typeof params !== "object" || !params.oldName || !params.newName) {
+      console.error("Invalid parameters for renameProfile:", params);
+      throw new Error("Invalid parameters: expected {oldName, newName}");
+    }
+    return await ipcRenderer.invoke("rename-profile", params);
+  },
+  deleteProfile: (profileId) => ipcRenderer.invoke("delete-profile", profileId),
 
   // Import/Export
   exportConfig: () => ipcRenderer.invoke("export-config"),

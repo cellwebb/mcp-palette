@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 
-const RenameModal = ({ isOpen, title, initialName, onConfirm, onCancel }) => {
+const RenameModal = ({
+  isOpen,
+  title,
+  initialName,
+  onConfirm,
+  onCancel,
+  profiles = [],
+}) => {
   const [newName, setNewName] = useState(initialName || "");
+  const [error, setError] = useState(null);
 
   // Reset the input field when the modal opens with a new name
   useEffect(() => {
@@ -21,15 +29,41 @@ const RenameModal = ({ isOpen, title, initialName, onConfirm, onCancel }) => {
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (newName && newName.trim() !== "") {
-      onConfirm(newName.trim());
-    }
+    processRename();
   };
 
-  // Handle button click directly
-  const handleRenameClick = () => {
-    if (newName && newName.trim() !== "") {
-      onConfirm(newName.trim());
+  // Process rename with validation
+  const processRename = () => {
+    // Validate input
+    if (!newName.trim()) {
+      setError("Profile name cannot be empty");
+      return;
+    }
+
+    // No change - early exit without error
+    if (newName.trim() === initialName) {
+      onCancel();
+      return;
+    }
+
+    // Check for duplicate names
+    if (
+      profiles.some(
+        (p) =>
+          p.name.toLowerCase() === newName.trim().toLowerCase() &&
+          p.name !== initialName,
+      )
+    ) {
+      setError(`A profile with the name "${newName.trim()}" already exists`);
+      return;
+    }
+
+    // Call the API through the parent component's callback
+    try {
+      // We need to pass the parameters as an object
+      onConfirm({ oldName: initialName, newName: newName.trim() });
+    } catch (err) {
+      setError(err.message || "Failed to rename profile");
     }
   };
 
@@ -66,6 +100,21 @@ const RenameModal = ({ isOpen, title, initialName, onConfirm, onCancel }) => {
         <div className="modal-header">
           <h2>{title}</h2>
         </div>
+
+        {error && (
+          <div
+            className="error-message"
+            style={{
+              color: "red",
+              marginBottom: "10px",
+              padding: "5px",
+              backgroundColor: "#ffeeee",
+              borderRadius: "3px",
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body" style={{ margin: "15px 0" }}>
@@ -105,7 +154,7 @@ const RenameModal = ({ isOpen, title, initialName, onConfirm, onCancel }) => {
               type="button"
               className="button button-primary"
               disabled={!newName.trim() || newName.trim() === initialName}
-              onClick={handleRenameClick}
+              onClick={processRename}
             >
               Rename
             </button>

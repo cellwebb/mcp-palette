@@ -8,7 +8,6 @@ const MasterServerForm = ({
   onViewJson,
 }) => {
   const [formData, setFormData] = useState({
-    id: "",
     name: "",
     command: "npx",
     args: [],
@@ -18,26 +17,29 @@ const MasterServerForm = ({
   const [newArg, setNewArg] = useState("");
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvValue, setNewEnvValue] = useState("");
+  const [originalId, setOriginalId] = useState("");
 
   // Initialize form data when server changes
   useEffect(() => {
     if (server) {
       setFormData({
-        id: serverId || server.id || "",
         name: server.name || "",
         command: server.command || "npx",
         args: server.args || [],
         env: server.env || {},
       });
+
+      // Save original ID if it exists
+      setOriginalId(server.originalId || "");
     } else {
       // Default values for new server
       setFormData({
-        id: "",
         name: "",
         command: "npx",
         args: [],
         env: {},
       });
+      setOriginalId("");
     }
   }, [server, serverId]);
 
@@ -97,17 +99,23 @@ const MasterServerForm = ({
     });
   };
 
+  // UUID generation is now handled automatically by the backend
+
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Make sure we have a server ID
-    if (!formData.id && formData.name) {
-      // Generate an ID from the name
-      formData.id = formData.name.toLowerCase().replace(/\s+/g, "-");
+    // The server ID will be generated automatically by the backend
+    // Include original ID if it exists
+    const serverData = { ...formData };
+    if (originalId) {
+      serverData.originalId = originalId;
+    } else if (!server && formData.name) {
+      // For new servers, set original ID to the name
+      serverData.originalId = formData.name;
     }
 
-    onSave(formData);
+    onSave(serverData);
   };
 
   return (
@@ -119,20 +127,12 @@ const MasterServerForm = ({
       <form onSubmit={handleSubmit}>
         <div className="form-section">
           <h3>Basic Settings</h3>
-
-          <div className="form-row">
-            <label htmlFor="id">Server ID</label>
-            <input
-              type="text"
-              id="id"
-              name="id"
-              value={formData.id}
-              onChange={handleChange}
-              placeholder="Unique identifier (e.g., 'filesystem', 'memory')"
-              required
-              readOnly={!!server} // Can't change ID of existing server
-            />
-          </div>
+          {/* Server ID field removed - UUIDs are now generated automatically */}
+          {originalId && (
+            <div className="original-id-info">
+              <small>Original ID: {originalId}</small>
+            </div>
+          )}
 
           <div className="form-row">
             <label htmlFor="name">Display Name</label>
@@ -171,6 +171,12 @@ const MasterServerForm = ({
                 value={newArg}
                 onChange={(e) => setNewArg(e.target.value)}
                 placeholder="Enter argument"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newArg.trim()) {
+                    e.preventDefault();
+                    handleAddArg();
+                  }
+                }}
               />
               <button
                 type="button"
@@ -210,17 +216,37 @@ const MasterServerForm = ({
                 value={newEnvKey}
                 onChange={(e) => setNewEnvKey(e.target.value)}
                 placeholder="Variable name"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newEnvKey.trim()) {
+                    e.preventDefault();
+                    if (
+                      newEnvValue.trim() ||
+                      window.confirm(
+                        "Add environment variable with empty value?",
+                      )
+                    ) {
+                      handleAddEnvVar();
+                    }
+                  }
+                }}
               />
               <input
                 type="text"
                 value={newEnvValue}
                 onChange={(e) => setNewEnvValue(e.target.value)}
                 placeholder="Value"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newEnvKey.trim()) {
+                    e.preventDefault();
+                    handleAddEnvVar();
+                  }
+                }}
               />
               <button
                 type="button"
                 className="button button-secondary"
                 onClick={handleAddEnvVar}
+                disabled={!newEnvKey.trim()}
               >
                 Add
               </button>

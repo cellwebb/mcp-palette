@@ -5,7 +5,12 @@ const fs = require("fs");
 const {
   store,
   setupDefaultProfiles,
+  runMigrations,
   getMergedServerConfig,
+  getProfileByIdOrName,
+  findServerByOriginalId,
+  generateUUID,
+  isValidUUID,
 } = require("./store");
 
 let mainWindow;
@@ -66,14 +71,59 @@ function createUserMcpServersProfile() {
   const username = process.env.USER || process.env.USERNAME || "user";
   const homePath = app.getPath("home");
 
+  // Get filesystem and memory servers
+  const serverMasterList = store.get("serverMasterList");
+  let filesystemId = null;
+  let memoryId = null;
+
+  // Find server UUIDs by original ID or name
+  for (const [uuid, server] of Object.entries(serverMasterList)) {
+    if (server.originalId === "filesystem" || server.name === "filesystem") {
+      filesystemId = uuid;
+    } else if (server.originalId === "memory" || server.name === "memory") {
+      memoryId = uuid;
+    }
+  }
+
+  // If servers not found, create them
+  if (!filesystemId) {
+    filesystemId = generateUUID();
+    serverMasterList[filesystemId] = {
+      name: "filesystem",
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem"],
+      env: {
+        BASE_DIRS: `${homePath}/Documents,${homePath}/Downloads`,
+      },
+      originalId: "filesystem",
+    };
+  }
+
+  if (!memoryId) {
+    memoryId = generateUUID();
+    serverMasterList[memoryId] = {
+      name: "memory",
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-memory"],
+      env: {
+        MEMORY_FILE_PATH: `${homePath}/.mcp-memory.json`,
+      },
+      originalId: "memory",
+    };
+  }
+
+  // Update server master list
+  store.set("serverMasterList", serverMasterList);
+
   // Create profile with references to master servers but with custom overrides
   const profiles = store.get("profiles");
   const profileName = `${username}'s MCP Servers`;
 
   const userProfile = {
+    id: generateUUID(),
     name: profileName,
     servers: {
-      filesystem: {
+      [filesystemId]: {
         enabled: true,
         overrides: {
           env: {
@@ -81,7 +131,7 @@ function createUserMcpServersProfile() {
           },
         },
       },
-      memory: {
+      [memoryId]: {
         enabled: true,
         overrides: {
           env: {
@@ -95,7 +145,8 @@ function createUserMcpServersProfile() {
   // Check if the profile already exists
   const existingIndex = profiles.findIndex((p) => p.name === profileName);
   if (existingIndex !== -1) {
-    // Update existing profile
+    // Update existing profile but keep its ID
+    userProfile.id = profiles[existingIndex].id;
     profiles[existingIndex] = userProfile;
   } else {
     // Create new profile
@@ -125,8 +176,16 @@ process.env.NODE_ENV = app.isPackaged ? "production" : "development";
 
 // App lifecycle
 app.whenReady().then(() => {
+  // Run migrations to ensure store is up to date
+  runMigrations();
+
+  // Set up default profiles
   setupDefaultProfiles();
+
+  // Set up app menu
   setupAppMenu();
+
+  // Create the window
   createWindow();
 });
 
@@ -145,8 +204,23 @@ ipcMain.handle("get-server-master-list", async () => {
 
 ipcMain.handle("add-master-server", async (event, serverData) => {
   const serverMasterList = store.get("serverMasterList");
-  serverMasterList[serverData.id] = serverData;
+
+  // Always generate a new UUID for the server
+  const serverId = generateUUID();
+
+  // Prepare server config
+  const serverConfig = { ...serverData };
+
+  // Set originalId to the server name if creating a new server
+  // or preserve existing originalId for edits
+  if (!serverConfig.originalId && serverConfig.name) {
+    serverConfig.originalId = serverConfig.name;
+  }
+
+  // Add server to master list
+  serverMasterList[serverId] = serverConfig;
   store.set("serverMasterList", serverMasterList);
+
   return serverMasterList;
 });
 
@@ -154,29 +228,58 @@ ipcMain.handle(
   "update-master-server",
   async (event, { serverId, updatedServer }) => {
     const serverMasterList = store.get("serverMasterList");
+
+    // Ensure the server exists
     if (serverMasterList[serverId]) {
+      // Preserve the originalId if it exists
+      if (serverMasterList[serverId].originalId) {
+        updatedServer.originalId = serverMasterList[serverId].originalId;
+      }
+
       serverMasterList[serverId] = updatedServer;
       store.set("serverMasterList", serverMasterList);
     }
+
     return serverMasterList;
   },
 );
 
 ipcMain.handle("delete-master-server", async (event, serverId) => {
   const serverMasterList = store.get("serverMasterList");
-  if (serverMasterList[serverId]) {
-    delete serverMasterList[serverId];
-    store.set("serverMasterList", serverMasterList);
 
-    // Also remove this server from all profiles
-    const profiles = store.get("profiles");
-    profiles.forEach((profile) => {
-      if (profile.servers && profile.servers[serverId]) {
-        delete profile.servers[serverId];
-      }
-    });
-    store.set("profiles", profiles);
+  // Check if the server exists
+  if (!serverMasterList[serverId]) {
+    throw new Error(`Server with ID ${serverId} not found`);
   }
+
+  // Check if server is used in any profile
+  const profiles = store.get("profiles");
+  const serverInUse = profiles.some(
+    (profile) =>
+      profile.servers &&
+      profile.servers[serverId] &&
+      profile.servers[serverId].enabled,
+  );
+
+  // If server is in use, don't allow deletion
+  if (serverInUse) {
+    throw new Error(
+      "Cannot delete server while it is enabled in a profile. Please disable the server in all profiles first.",
+    );
+  }
+
+  // Now delete the server
+  delete serverMasterList[serverId];
+  store.set("serverMasterList", serverMasterList);
+
+  // Remove references from all profiles
+  profiles.forEach((profile) => {
+    if (profile.servers && profile.servers[serverId]) {
+      delete profile.servers[serverId];
+    }
+  });
+  store.set("profiles", profiles);
+
   return serverMasterList;
 });
 
@@ -189,25 +292,89 @@ ipcMain.handle("get-active-profile", async () => {
   return store.get("activeProfile");
 });
 
-ipcMain.handle("set-active-profile", async (event, profileName) => {
-  store.set("activeProfile", profileName);
-  return profileName;
+ipcMain.handle("set-active-profile", async (event, profileId) => {
+  // Find the profile by ID or name
+  const profile = getProfileByIdOrName(profileId);
+
+  if (!profile) {
+    throw new Error(`Profile not found: ${profileId}`);
+  }
+
+  // Store the profile name as active profile
+  store.set("activeProfile", profile.name);
+
+  return profile.name;
 });
 
 ipcMain.handle("add-profile", async (event, profile) => {
-  const profiles = store.get("profiles");
-  profiles.push(profile);
-  store.set("profiles", profiles);
-  return profiles;
+  console.log("Adding profile:", profile);
+
+  try {
+    const profiles = store.get("profiles");
+
+    // Ensure profile has an ID
+    if (!profile.id) {
+      profile.id = generateUUID();
+    }
+
+    // Make sure name is valid
+    if (
+      !profile.name ||
+      typeof profile.name !== "string" ||
+      !profile.name.trim()
+    ) {
+      throw new Error("Profile name cannot be empty");
+    }
+
+    // Check for duplicate names
+    if (
+      profiles.some((p) => p.name.toLowerCase() === profile.name.toLowerCase())
+    ) {
+      throw new Error(
+        `A profile with the name "${profile.name}" already exists`,
+      );
+    }
+
+    // Ensure servers is initialized
+    if (!profile.servers) {
+      profile.servers = {};
+    }
+
+    // Add profile
+    profiles.push(profile);
+    store.set("profiles", profiles);
+
+    // If this is the first profile, set it as active
+    if (profiles.length === 1) {
+      store.set("activeProfile", profile.name);
+    }
+
+    console.log("Profile added successfully:", profile.name);
+
+    // Send notification
+    if (mainWindow) {
+      mainWindow.webContents.send("profiles-updated");
+    }
+
+    return profiles;
+  } catch (error) {
+    console.error("Error adding profile:", error);
+    throw error;
+  }
 });
 
 ipcMain.handle(
   "update-profile",
   async (event, { profileName, updatedProfile }) => {
     const profiles = store.get("profiles");
+
+    // Find the profile by name
     const index = profiles.findIndex((p) => p.name === profileName);
 
     if (index !== -1) {
+      // Preserve the profile ID
+      updatedProfile.id = profiles[index].id;
+
       profiles[index] = updatedProfile;
       store.set("profiles", profiles);
     }
@@ -231,6 +398,12 @@ ipcMain.handle("rename-profile", async (event, { oldName, newName }) => {
   if (!newName) {
     console.error("New profile name cannot be empty");
     throw new Error("New profile name cannot be empty");
+  }
+
+  // Early return for no change (not an error)
+  if (newName === oldName) {
+    console.log("No change in name, returning current profiles");
+    return store.get("profiles");
   }
 
   try {
@@ -260,7 +433,7 @@ ipcMain.handle("rename-profile", async (event, { oldName, newName }) => {
       throw new Error(`Profile "${oldName}" not found`);
     }
 
-    // Update the profile name
+    // Update the profile name but preserve the ID
     profiles[index].name = newName;
     console.log(`Renamed profile from "${oldName}" to "${newName}"`);
 
@@ -270,6 +443,11 @@ ipcMain.handle("rename-profile", async (event, { oldName, newName }) => {
     // Save the updated profiles
     store.set("profiles", profilesCopy);
     console.log("Saved updated profiles");
+
+    // Send notification about profile update to any listening windows
+    if (mainWindow) {
+      mainWindow.webContents.send("profiles-updated");
+    }
 
     // If this is the active profile, update the active profile name
     if (store.get("activeProfile") === oldName) {
@@ -285,9 +463,19 @@ ipcMain.handle("rename-profile", async (event, { oldName, newName }) => {
   }
 });
 
-ipcMain.handle("delete-profile", async (event, profileName) => {
+ipcMain.handle("delete-profile", async (event, profileId) => {
   try {
-    console.log(`delete-profile handler called with: ${profileName}`);
+    console.log(`delete-profile handler called with: ${profileId}`);
+
+    // Find the profile by ID or name
+    const profile = getProfileByIdOrName(profileId);
+
+    if (!profile) {
+      console.error(`Profile not found: ${profileId}`);
+      throw new Error(`Profile not found: ${profileId}`);
+    }
+
+    const profileName = profile.name;
 
     // Validate input
     if (!profileName) {
@@ -305,15 +493,8 @@ ipcMain.handle("delete-profile", async (event, profileName) => {
       throw new Error("Cannot delete the last remaining profile");
     }
 
-    // Find the profile to make sure it exists
-    const profileToDelete = profiles.find((p) => p.name === profileName);
-    if (!profileToDelete) {
-      console.error(`Profile "${profileName}" not found`);
-      throw new Error(`Profile "${profileName}" not found`);
-    }
-
     // Filter out the profile to delete
-    const updatedProfiles = profiles.filter((p) => p.name !== profileName);
+    const updatedProfiles = profiles.filter((p) => p.id !== profile.id);
     console.log(`After filter: ${updatedProfiles.length} profiles remaining`);
 
     // Create a deep copy to avoid reference issues
@@ -345,31 +526,128 @@ ipcMain.handle("delete-profile", async (event, profileName) => {
 // Handler for getting merged server configuration
 ipcMain.handle(
   "get-effective-server-config",
-  async (event, { serverId, profileName }) => {
-    const profiles = store.get("profiles");
-    const profile = profiles.find((p) => p.name === profileName);
+  async (event, { serverId, profileId }) => {
+    // Find the profile by ID or name
+    const profile = getProfileByIdOrName(profileId);
 
     if (!profile) return null;
 
-    return getMergedServerConfig(serverId, profile.servers[serverId]);
+    // Get server by UUID or original ID
+    const serverUUID =
+      isValidUUID(serverId) && store.get(`serverMasterList.${serverId}`)
+        ? serverId
+        : findServerByOriginalId(serverId);
+
+    if (!serverUUID) return null;
+
+    return getMergedServerConfig(serverUUID, profile.servers[serverUUID]);
   },
 );
 
 // IPC Handlers for import/export functionality
 ipcMain.handle("export-config", async () => {
+  // Ask if user wants internal format or MCP spec format
+  const formatResult = await dialog.showMessageBox({
+    type: "question",
+    buttons: ["MCP Format", "Internal Format", "Cancel"],
+    defaultId: 0,
+    title: "Export Format",
+    message: "Select export format",
+    detail:
+      "MCP Format: Standard format for use with MCP clients\nInternal Format: Complete configuration with all metadata",
+  });
+
+  if (formatResult.response === 2) {
+    // Cancel
+    return false;
+  }
+
+  const isMcpFormat = formatResult.response === 0;
+  const fileExtension = isMcpFormat ? "json" : "backup.json";
+  const defaultFilename = isMcpFormat
+    ? "mcp-config.json"
+    : "mcp-palette-backup.json";
+
   const result = await dialog.showSaveDialog({
     title: "Export Configuration",
-    defaultPath: path.join(app.getPath("downloads"), "mcp-config.json"),
-    filters: [{ name: "JSON Files", extensions: ["json"] }],
+    defaultPath: path.join(app.getPath("downloads"), defaultFilename),
+    filters: [
+      { name: "JSON Files", extensions: [fileExtension.split(".").pop()] },
+    ],
   });
 
   if (!result.canceled) {
-    const config = {
-      serverMasterList: store.get("serverMasterList"),
-      profiles: store.get("profiles"),
-    };
+    if (isMcpFormat) {
+      // Export in MCP format
+      const serverMasterList = store.get("serverMasterList");
+      const activeProfile = getProfileByIdOrName(store.get("activeProfile"));
 
-    fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2));
+      if (!activeProfile) {
+        throw new Error("No active profile found");
+      }
+
+      // Build MCP config format
+      const mcpServers = {};
+
+      // Only add enabled servers from the active profile
+      Object.entries(activeProfile.servers || {}).forEach(
+        ([serverId, profileServer]) => {
+          if (!profileServer.enabled) return;
+
+          const masterServer = serverMasterList[serverId];
+          if (!masterServer) return;
+
+          // Create a clean configuration with overrides applied
+          let serverConfig = { ...masterServer };
+          if (profileServer.overrides) {
+            // Apply overrides
+            if (profileServer.overrides.name)
+              serverConfig.name = profileServer.overrides.name;
+            if (profileServer.overrides.command)
+              serverConfig.command = profileServer.overrides.command;
+            if (profileServer.overrides.args)
+              serverConfig.args = [...profileServer.overrides.args];
+            if (profileServer.overrides.env) {
+              serverConfig.env = {
+                ...serverConfig.env,
+                ...profileServer.overrides.env,
+              };
+            }
+          }
+
+          // Use server name as the key
+          const serverName =
+            serverConfig.name || serverConfig.originalId || serverId;
+
+          // Create MCP format entry
+          mcpServers[serverName] = {
+            command: serverConfig.command,
+            args: serverConfig.args,
+          };
+
+          // Add env if it exists
+          if (serverConfig.env && Object.keys(serverConfig.env).length > 0) {
+            mcpServers[serverName].env = serverConfig.env;
+          }
+        },
+      );
+
+      // Write MCP format
+      fs.writeFileSync(
+        result.filePath,
+        JSON.stringify({ mcpServers }, null, 2),
+      );
+    } else {
+      // Export in internal format (full backup)
+      const config = {
+        serverMasterList: store.get("serverMasterList"),
+        profiles: store.get("profiles"),
+        activeProfile: store.get("activeProfile"),
+        storeVersion: store.get("storeVersion") || "2.0.0",
+      };
+
+      fs.writeFileSync(result.filePath, JSON.stringify(config, null, 2));
+    }
     return true;
   }
   return false;
@@ -387,19 +665,205 @@ ipcMain.handle("import-config", async () => {
       const data = fs.readFileSync(result.filePaths[0], "utf8");
       const importedConfig = JSON.parse(data);
 
+      // Check if this is an MCP format config (has mcpServers property)
+      if (importedConfig.mcpServers) {
+        console.log("Detected MCP format configuration");
+
+        const mcpServers = importedConfig.mcpServers;
+        const existingServerMasterList = store.get("serverMasterList");
+        const updatedServerMasterList = { ...existingServerMasterList };
+        const importedServerIds = [];
+
+        // Process each server in the MCP config
+        for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
+          // Check if we have a server with this name in the master list
+          let existingServerId = null;
+
+          // Find existing server by name or originalId
+          for (const [uuid, server] of Object.entries(
+            existingServerMasterList,
+          )) {
+            if (
+              server.name === serverName ||
+              server.originalId === serverName
+            ) {
+              existingServerId = uuid;
+              break;
+            }
+          }
+
+          if (existingServerId) {
+            // Update existing server
+            updatedServerMasterList[existingServerId] = {
+              ...updatedServerMasterList[existingServerId],
+              ...serverConfig,
+              name: serverName, // Ensure name is preserved
+            };
+            importedServerIds.push(existingServerId);
+          } else {
+            // Create new server with UUID
+            const newServerId = generateUUID();
+            updatedServerMasterList[newServerId] = {
+              name: serverName,
+              command: serverConfig.command,
+              args: serverConfig.args || [],
+              env: serverConfig.env || {},
+              originalId: serverName,
+            };
+            importedServerIds.push(newServerId);
+          }
+        }
+
+        // Update the server master list
+        store.set("serverMasterList", updatedServerMasterList);
+
+        // Create a new profile for the imported MCP config
+        const profiles = store.get("profiles");
+        const profileName = "Imported MCP Config";
+
+        // Check if profile already exists
+        const existingProfileIndex = profiles.findIndex(
+          (p) => p.name === profileName,
+        );
+
+        const profileServers = {};
+        importedServerIds.forEach((serverId) => {
+          profileServers[serverId] = {
+            enabled: true,
+            overrides: {},
+          };
+        });
+
+        if (existingProfileIndex >= 0) {
+          // Update existing profile
+          profiles[existingProfileIndex].servers = profileServers;
+        } else {
+          // Create new profile
+          profiles.push({
+            id: generateUUID(),
+            name: profileName,
+            servers: profileServers,
+          });
+        }
+
+        // Update profiles
+        store.set("profiles", profiles);
+
+        // Set the imported profile as active
+        const profileToActivate =
+          existingProfileIndex >= 0
+            ? profiles[existingProfileIndex]
+            : profiles[profiles.length - 1];
+        store.set("activeProfile", profileToActivate.name);
+
+        return {
+          serverMasterList: updatedServerMasterList,
+          profiles: profiles,
+        };
+      }
       // Handle both old and new format imports
-      if (importedConfig.serverMasterList) {
-        // New format with server master list
-        store.set("serverMasterList", importedConfig.serverMasterList);
-        store.set("profiles", importedConfig.profiles);
+      else if (importedConfig.serverMasterList) {
+        // Check if imported config has UUIDs
+        let hasUUIDs = true;
+
+        // Check if server keys are UUIDs
+        if (Object.keys(importedConfig.serverMasterList).length > 0) {
+          const firstServerId = Object.keys(importedConfig.serverMasterList)[0];
+          if (!isValidUUID(firstServerId)) {
+            hasUUIDs = false;
+          }
+        }
+
+        // Check if profiles have IDs
+        if (importedConfig.profiles && importedConfig.profiles.length > 0) {
+          if (!importedConfig.profiles[0].id) {
+            hasUUIDs = false;
+          }
+        }
+
+        if (!hasUUIDs) {
+          // Convert to UUID format
+          const serverIdMap = {};
+          const newServerMasterList = {};
+
+          // Convert servers
+          Object.entries(importedConfig.serverMasterList).forEach(
+            ([oldId, serverConfig]) => {
+              const newId = generateUUID();
+              serverIdMap[oldId] = newId;
+
+              newServerMasterList[newId] = {
+                ...serverConfig,
+                originalId: oldId,
+              };
+            },
+          );
+
+          // Convert profiles
+          const newProfiles = importedConfig.profiles.map((profile) => {
+            const newProfile = {
+              ...profile,
+              id: generateUUID(),
+              servers: {},
+            };
+
+            // Update server references
+            if (profile.servers) {
+              Object.entries(profile.servers).forEach(
+                ([oldServerId, serverConfig]) => {
+                  const newServerId = serverIdMap[oldServerId];
+                  if (newServerId) {
+                    newProfile.servers[newServerId] = serverConfig;
+                  }
+                },
+              );
+            }
+
+            return newProfile;
+          });
+
+          // Update store
+          store.set("serverMasterList", newServerMasterList);
+          store.set("profiles", newProfiles);
+          store.set("storeVersion", "2.0.0");
+
+          // Set active profile if specified
+          if (importedConfig.activeProfile) {
+            // Find the new profile that corresponds to the old active profile
+            const activeProfile = newProfiles.find(
+              (p) => p.name === importedConfig.activeProfile,
+            );
+            if (activeProfile) {
+              store.set("activeProfile", activeProfile.name);
+            }
+          }
+        } else {
+          // Already has UUIDs, just import directly
+          store.set("serverMasterList", importedConfig.serverMasterList);
+          store.set("profiles", importedConfig.profiles);
+
+          // Update store version if provided
+          if (importedConfig.storeVersion) {
+            store.set("storeVersion", importedConfig.storeVersion);
+          } else {
+            store.set("storeVersion", "2.0.0");
+          }
+
+          // Set active profile if specified
+          if (importedConfig.activeProfile) {
+            store.set("activeProfile", importedConfig.activeProfile);
+          }
+        }
       } else if (Array.isArray(importedConfig)) {
         // Legacy format - just profiles array
-        // Convert to new format by extracting servers to master list
+        // Convert to new format with UUIDs
         const serverMasterList = {};
         const profiles = [];
+        const serverIdMap = {};
 
         importedConfig.forEach((profile) => {
           const newProfile = {
+            id: generateUUID(),
             name: profile.name,
             servers: {},
           };
@@ -407,14 +871,20 @@ ipcMain.handle("import-config", async () => {
           // Extract servers to master list and convert profile to reference them
           if (profile.servers) {
             Object.entries(profile.servers).forEach(
-              ([serverId, serverConfig]) => {
-                // Add to master list if not already there
-                if (!serverMasterList[serverId]) {
-                  serverMasterList[serverId] = serverConfig;
+              ([oldServerId, serverConfig]) => {
+                // Generate UUID for server if not already mapped
+                if (!serverIdMap[oldServerId]) {
+                  serverIdMap[oldServerId] = generateUUID();
+
+                  // Add to master list
+                  serverMasterList[serverIdMap[oldServerId]] = {
+                    ...serverConfig,
+                    originalId: oldServerId,
+                  };
                 }
 
                 // Add reference to profile
-                newProfile.servers[serverId] = {
+                newProfile.servers[serverIdMap[oldServerId]] = {
                   enabled: true,
                   overrides: {},
                 };
@@ -427,6 +897,12 @@ ipcMain.handle("import-config", async () => {
 
         store.set("serverMasterList", serverMasterList);
         store.set("profiles", profiles);
+        store.set("storeVersion", "2.0.0");
+
+        // Set first profile as active
+        if (profiles.length > 0) {
+          store.set("activeProfile", profiles[0].name);
+        }
       }
 
       return {
@@ -439,4 +915,14 @@ ipcMain.handle("import-config", async () => {
     }
   }
   return null;
+});
+
+// Add a specific handler for getting a server by original ID
+ipcMain.handle("find-server-by-original-id", async (event, originalId) => {
+  return findServerByOriginalId(originalId);
+});
+
+// Add a specific handler for generating a UUID
+ipcMain.handle("generate-uuid", async () => {
+  return generateUUID();
 });

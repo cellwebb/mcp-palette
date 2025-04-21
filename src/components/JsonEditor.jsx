@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import MonacoEditor from "react-monaco-editor";
-import * as monaco from "monaco-editor";
 
 const JsonEditor = ({
   json,
   onViewServerJson,
   onRestoreDefaults,
   isProfileView = true,
+  profileName = "",
 }) => {
   const [editorContent, setEditorContent] = useState(json);
   const [error, setError] = useState(null);
@@ -42,7 +42,31 @@ const JsonEditor = ({
   const handleCopyToClipboard = () => {
     try {
       // Format JSON properly for copying
-      const jsonToCopy = JSON.stringify(JSON.parse(editorContent), null, 2);
+      let jsonData = JSON.parse(editorContent);
+
+      // Special handling for profile view to format as MCP config
+      if (isProfileView && jsonData) {
+        // Ensure we're using the correct format for MCP
+        if (!jsonData.mcpServers && jsonData.servers) {
+          // Convert legacy format to MCP format
+          const mcpServers = {};
+          Object.entries(jsonData.servers || {}).forEach(([id, server]) => {
+            const serverName = server.name || id;
+            mcpServers[serverName] = {
+              command: server.command,
+              args: server.args,
+            };
+
+            if (server.env && Object.keys(server.env).length > 0) {
+              mcpServers[serverName].env = server.env;
+            }
+          });
+
+          jsonData = { mcpServers };
+        }
+      }
+
+      const jsonToCopy = JSON.stringify(jsonData, null, 2);
       navigator.clipboard.writeText(jsonToCopy);
       setCopySuccess(true);
     } catch (err) {
@@ -50,17 +74,54 @@ const JsonEditor = ({
     }
   };
 
+  // Export JSON to file
+  const handleExportToJson = () => {
+    try {
+      let jsonData = JSON.parse(editorContent);
+
+      // Special handling for profile view to format as MCP config
+      if (isProfileView && jsonData) {
+        // Ensure we're using the correct format for MCP
+        if (!jsonData.mcpServers && jsonData.servers) {
+          // Convert legacy format to MCP format
+          const mcpServers = {};
+          Object.entries(jsonData.servers || {}).forEach(([id, server]) => {
+            const serverName = server.name || id;
+            mcpServers[serverName] = {
+              command: server.command,
+              args: server.args,
+            };
+
+            if (server.env && Object.keys(server.env).length > 0) {
+              mcpServers[serverName].env = server.env;
+            }
+          });
+
+          jsonData = { mcpServers };
+        }
+      }
+
+      const jsonToExport = JSON.stringify(jsonData, null, 2);
+      const blob = new Blob([jsonToExport], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const filename = isProfileView
+        ? "mcp-config.json"
+        : "server-master-list.json";
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError("Failed to export: Invalid JSON format");
+    }
+  };
+
   // Handle editor mounting
   const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
-
-    // Add keyboard shortcut for copying JSON (Ctrl+Shift+C)
-    editor.addCommand(
-      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_C,
-      () => {
-        handleCopyToClipboard();
-      },
-    );
   };
 
   // Monaco editor options
@@ -103,35 +164,47 @@ const JsonEditor = ({
       <div className="json-editor-header">
         <div className="json-editor-title">
           <h2>
-            MCP Configuration JSON{" "}
+            {isProfileView && profileName
+              ? `MCP Configuration JSON - ${profileName}`
+              : "MCP Configuration JSON - Server Master List"}{" "}
             <span className="readonly-badge">🔒 Read-Only</span>
           </h2>
           <p className="json-editor-subtitle">
             {isProfileView ? (
               <>
-                This view displays the effective configuration with only enabled
-                servers, showing values inherited from the master list with
-                profile-specific overrides applied. You can copy this JSON but
-                not edit it directly.
+                This view displays the effective MCP-compliant configuration
+                with only enabled servers, showing values inherited from the
+                master list with profile-specific overrides applied.
               </>
             ) : (
               <>
                 This view displays the complete server master list containing
-                all available server configurations. You can copy this JSON but
-                not edit it directly.
+                all available server configurations in MCP-compliant format.
               </>
             )}
           </p>
         </div>
         <div className="json-editor-actions">
           <div className="json-editor-actions-container">
-            <button
-              className="button button-info"
-              onClick={handleCopyToClipboard}
-              title="Copy JSON to clipboard (Ctrl+Shift+C)"
+            <div
+              className="json-editor-action-buttons"
+              style={{ display: "flex", gap: 8 }}
             >
-              Copy to Clipboard (Ctrl+Shift+C)
-            </button>
+              <button
+                className="button button-info"
+                onClick={handleCopyToClipboard}
+                title="Copy JSON to clipboard"
+              >
+                Copy to Clipboard
+              </button>
+              <button
+                className="button button-secondary"
+                onClick={handleExportToJson}
+                title="Export JSON as file"
+              >
+                Export JSON
+              </button>
+            </div>
 
             {copySuccess && (
               <div className="copy-success-container">
