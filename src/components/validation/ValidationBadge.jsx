@@ -33,9 +33,9 @@ const ValidationBadge = ({
 
   // Badge text and icon based on type
   const badgeInfo = {
-    valid: { text: "Valid", icon: "✓" },
-    warning: { text: "Valid with warnings", icon: "⚠️" },
-    error: { text: "Invalid", icon: "✗" },
+    valid: { text: "Valid", icon: "✔" },
+    warning: { text: "Valid with warnings", icon: "⚠" },
+    error: { text: "Invalid", icon: "✘" },
   };
 
   return (
@@ -44,7 +44,7 @@ const ValidationBadge = ({
       onClick={onClick}
     >
       <span className="validation-badge-icon">{badgeInfo[badgeType].icon}</span>
-      <span className="validation-badge-text">{badgeInfo[badgeType].text}</span>
+      {badgeInfo[badgeType].text}
 
       {showDetails && (badgeType === "warning" || badgeType === "error") && (
         <div className="validation-details-popup">

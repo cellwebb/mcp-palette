@@ -27,7 +27,7 @@ describe("ValidationBadge", () => {
     render(<ValidationBadge validationResult={validResult} />);
 
     expect(screen.getByText("Valid")).toBeInTheDocument();
-    expect(screen.getByText("✓")).toBeInTheDocument();
+    expect(screen.getByText("✔")).toBeInTheDocument();
 
     // Badge should have valid class
     const badge = screen.getByText("Valid").closest(".validation-badge");
@@ -44,7 +44,7 @@ describe("ValidationBadge", () => {
     render(<ValidationBadge validationResult={validWithWarningsResult} />);
 
     expect(screen.getByText("Valid with warnings")).toBeInTheDocument();
-    expect(screen.getByText("⚠️")).toBeInTheDocument();
+    expect(screen.getByText("⚠")).toBeInTheDocument();
 
     // Badge should have warning class
     const badge = screen
@@ -63,7 +63,7 @@ describe("ValidationBadge", () => {
     render(<ValidationBadge validationResult={invalidResult} />);
 
     expect(screen.getByText("Invalid")).toBeInTheDocument();
-    expect(screen.getByText("✗")).toBeInTheDocument();
+    expect(screen.getByText("✘")).toBeInTheDocument();
 
     // Badge should have error class
     const badge = screen.getByText("Invalid").closest(".validation-badge");

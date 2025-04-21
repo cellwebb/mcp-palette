@@ -1,16 +1,17 @@
 .validation-badge {
-  display: inline-flex;
+  display: inline-block;
   align-items: center;
-  padding: 4px 10px;
+  padding: 2px 6px;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 12px;
   cursor: pointer;
   position: relative;
   user-select: none;
   margin-right: 8px;
-  font-weight: 600;
+  margin-left: 8px;
+  font-weight: bold;
   transition: background-color 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  vertical-align: middle;
 }
 
 .validation-badge:hover {
@@ -18,33 +19,33 @@
 }
 
 .validation-badge-valid {
-  background-color: #dff6dd;
-  color: #107c10;
-  border: 1px solid #107c10;
+  background-color: #28a745;
+  color: white;
+  border: none;
 }
 
 .validation-badge-warning {
-  background-color: #fff4ce;
-  color: #9d5d00;
-  border: 1px solid #9d5d00;
+  background-color: #ffc107;
+  color: #212529;
+  border: none;
 }
 
 .validation-badge-error {
-  background-color: #fde7e9;
-  color: #c50f1f;
-  border: 1px solid #c50f1f;
+  background-color: #dc3545;
+  color: white;
+  border: none;
 }
 
 .validation-badge-unknown {
-  background-color: #f3f2f1;
-  color: #605e5c;
-  border: 1px solid #e1dfdd;
+  background-color: #6c757d;
+  color: white;
+  border: none;
 }
 
 .validation-badge-icon {
-  margin-right: 6px;
+  margin-right: 4px;
   font-weight: bold;
-  font-size: 1rem;
+  font-size: 14px;
 }
 
 .validation-details-popup {
