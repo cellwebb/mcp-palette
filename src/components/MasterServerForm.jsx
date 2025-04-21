@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import {
   validateMcpServerConfig,
   getValidationSummary,
+  formatSingleServerConfig,
 } from "../utils/validation/mcpValidator";
 import { ValidationBadge } from "./validation";
 import { validationPatterns } from "../utils/validation/mcpSchema";
+import ServerJsonViewer from "./ServerJsonViewer";
 
 const MasterServerForm = ({
   server,
@@ -24,6 +26,7 @@ const MasterServerForm = ({
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvValue, setNewEnvValue] = useState("");
   const [originalId, setOriginalId] = useState("");
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
 
   // Add state for validation
   const [validationResult, setValidationResult] = useState(null);
@@ -133,6 +136,40 @@ const MasterServerForm = ({
     });
   };
 
+  // Generate preview JSON based on current form state
+  const generatePreviewJson = () => {
+    // Create a clean server object for JSON preview
+    const serverData = { ...formData };
+
+    // Add originalId if needed
+    if (originalId) {
+      serverData.originalId = originalId;
+    } else if (formData.name) {
+      // For new servers, set original ID to the name for preview
+      serverData.originalId = formData.name;
+    }
+
+    // Remove empty properties
+    if (formData.args && formData.args.length === 0) {
+      delete serverData.args;
+    }
+
+    if (formData.env && Object.keys(formData.env).length === 0) {
+      delete serverData.env;
+    }
+
+    return serverData;
+  };
+
+  // Handle JSON preview
+  const handleViewJson = () => {
+    setShowJsonPreview(true);
+  };
+
+  const handleBackFromJson = () => {
+    setShowJsonPreview(false);
+  };
+
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -161,6 +198,17 @@ const MasterServerForm = ({
   const isValidEnvName = (name) => {
     return validationPatterns.envVarName.test(name);
   };
+
+  // Show JSON preview if requested
+  if (showJsonPreview) {
+    return (
+      <ServerJsonViewer
+        server={generatePreviewJson()}
+        serverId={formData.name || "new-server"}
+        onBack={handleBackFromJson}
+      />
+    );
+  }
 
   return (
     <div className="form-container">
@@ -385,15 +433,13 @@ const MasterServerForm = ({
           >
             Cancel
           </button>
-          {server && (
-            <button
-              type="button"
-              className="button button-info"
-              onClick={onViewJson}
-            >
-              View JSON
-            </button>
-          )}
+          <button
+            type="button"
+            className="button button-info"
+            onClick={handleViewJson}
+          >
+            View JSON
+          </button>
         </div>
       </form>
     </div>

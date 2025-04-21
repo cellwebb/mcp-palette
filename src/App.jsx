@@ -908,7 +908,6 @@ const App = () => {
                         setIsAddingServer(false);
                         setSelectedServerMaster(null);
                       }}
-                      onViewJson={() => setViewingServerJson(true)}
                     />
                   ) : (
                     <ServerMasterList
