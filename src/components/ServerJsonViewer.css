@@ -1,0 +1,79 @@
+.server-json-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.server-json-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #edebe9;
+  background-color: #f8f8f8;
+}
+
+.server-json-title h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #323130;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.readonly-badge {
+  font-size: 0.8rem;
+  margin-left: 8px;
+  padding: 2px 6px;
+  background-color: #f3f2f1;
+  border-radius: 3px;
+  color: #605e5c;
+  font-weight: normal;
+}
+
+.server-json-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.2s ease;
+}
+
+.button-primary {
+  background-color: #0078d4;
+  color: white;
+  border-color: #0078d4;
+}
+
+.button-primary:hover {
+  background-color: #106ebe;
+  border-color: #106ebe;
+}
+
+.button-secondary {
+  background-color: #f3f2f1;
+  color: #323130;
+  border-color: #c8c6c4;
+}
+
+.button-secondary:hover {
+  background-color: #e1dfdd;
+  border-color: #b3b0ad;
+}
+
+/* Make JsonEditor fill the remaining space */
+.server-json-viewer .monaco-editor-container {
+  flex: 1;
+  min-height: 300px;
+  margin-top: 0;
+}

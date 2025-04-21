@@ -1,0 +1,50 @@
+/* Form validation styles */
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.form-validation {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.validation-summary {
+  font-size: 0.85rem;
+  color: #c50f1f;
+}
+
+/* Input validation styles */
+.input-warning {
+  border-color: #ffb900 !important;
+  background-color: #fff4ce !important;
+}
+
+.input-error {
+  border-color: #e74856 !important;
+  background-color: #fde7e9 !important;
+}
+
+.input-message {
+  font-size: 0.8rem;
+  margin-top: 4px;
+  margin-left: 2px;
+}
+
+.input-message.warning {
+  color: #9d5d00;
+}
+
+.input-message.error {
+  color: #c50f1f;
+}
+
+/* Environment variable warnings */
+.env-var-warning {
+  background-color: #fff4ce;
+  border: 1px solid #ffb900;
+  color: #9d5d00;
+}

@@ -1,4 +1,10 @@
 import { useState, useEffect } from "react";
+import {
+  validateMcpServerConfig,
+  getValidationSummary,
+} from "../utils/validation/mcpValidator";
+import { ValidationBadge } from "./validation";
+import { validationPatterns } from "../utils/validation/mcpSchema";
 
 const MasterServerForm = ({
   server,
@@ -18,6 +24,10 @@ const MasterServerForm = ({
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvValue, setNewEnvValue] = useState("");
   const [originalId, setOriginalId] = useState("");
+
+  // Add state for validation
+  const [validationResult, setValidationResult] = useState(null);
+  const [showValidationDetails, setShowValidationDetails] = useState(false);
 
   // Initialize form data when server changes
   useEffect(() => {
@@ -42,6 +52,30 @@ const MasterServerForm = ({
       setOriginalId("");
     }
   }, [server, serverId]);
+
+  // Validate form data whenever it changes
+  useEffect(() => {
+    // Don't validate empty forms
+    if (
+      !formData.name &&
+      !formData.command &&
+      formData.args.length === 0 &&
+      Object.keys(formData.env).length === 0
+    ) {
+      setValidationResult(null);
+      return;
+    }
+
+    const result = validateMcpServerConfig(
+      formData,
+      formData.name || "Unnamed Server",
+    );
+    setValidationResult({
+      valid: result.errors.length === 0,
+      errors: result.errors,
+      warnings: result.warnings,
+    });
+  }, [formData]);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -99,8 +133,6 @@ const MasterServerForm = ({
     });
   };
 
-  // UUID generation is now handled automatically by the backend
-
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -118,16 +150,38 @@ const MasterServerForm = ({
     onSave(serverData);
   };
 
+  // Check if env var name is valid
+  const isValidEnvName = (name) => {
+    return validationPatterns.envVarName.test(name);
+  };
+
   return (
     <div className="form-container">
-      <h2>
-        {server ? "Edit Server in Master List" : "Add Server to Master List"}
-      </h2>
+      <div className="form-header">
+        <h2>
+          {server ? "Edit Server in Master List" : "Add Server to Master List"}
+        </h2>
+
+        {/* Add validation badge */}
+        {validationResult && (
+          <div className="form-validation">
+            <ValidationBadge
+              validationResult={validationResult}
+              showDetails={true}
+              onClick={() => setShowValidationDetails(!showValidationDetails)}
+            />
+            {validationResult && !validationResult.valid && (
+              <span className="validation-summary">
+                {getValidationSummary(validationResult)}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit}>
         <div className="form-section">
           <h3>Basic Settings</h3>
-          {/* Server ID field removed - UUIDs are now generated automatically */}
           {originalId && (
             <div className="original-id-info">
               <small>Original ID: {originalId}</small>
@@ -157,7 +211,19 @@ const MasterServerForm = ({
               onChange={handleChange}
               placeholder="Command to run (e.g., npx, python)"
               required
+              className={
+                formData.command &&
+                !validationPatterns.safeCommand.test(formData.command)
+                  ? "input-warning"
+                  : ""
+              }
             />
+            {formData.command &&
+              !validationPatterns.safeCommand.test(formData.command) && (
+                <div className="input-message warning">
+                  Warning: Command contains potentially unsafe characters
+                </div>
+              )}
           </div>
         </div>
 
@@ -216,6 +282,9 @@ const MasterServerForm = ({
                 value={newEnvKey}
                 onChange={(e) => setNewEnvKey(e.target.value)}
                 placeholder="Variable name"
+                className={
+                  newEnvKey && !isValidEnvName(newEnvKey) ? "input-warning" : ""
+                }
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && newEnvKey.trim()) {
                     e.preventDefault();
@@ -253,12 +322,28 @@ const MasterServerForm = ({
             </div>
           </div>
 
+          {newEnvKey && !isValidEnvName(newEnvKey) && (
+            <div className="input-message warning">
+              Warning: Environment variable name should contain only letters,
+              numbers, and underscores, and start with a letter or underscore
+            </div>
+          )}
+
           {Object.keys(formData.env).length > 0 && (
             <div className="env-vars-list">
               {Object.entries(formData.env).map(([key, value]) => (
                 <div key={key} className="env-var-item">
                   <div className="env-var-key">
-                    <code>{key}</code>
+                    <code
+                      className={!isValidEnvName(key) ? "env-var-warning" : ""}
+                      title={
+                        !isValidEnvName(key)
+                          ? "Variable name format warning"
+                          : ""
+                      }
+                    >
+                      {key}
+                    </code>
                   </div>
                   <div className="env-var-value">
                     <code>{value}</code>
