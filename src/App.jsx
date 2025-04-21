@@ -901,7 +901,7 @@ const App = () => {
                           : null
                       }
                       serverId={selectedServerMaster}
-                      onSave={handleSaveMasterServer}
+                      onSave={selectedServerMaster ? handleUpdateMasterServer : handleSaveMasterServer}
                       onCancel={() => {
                         setIsAddingServer(false);
                         setSelectedServerMaster(null);

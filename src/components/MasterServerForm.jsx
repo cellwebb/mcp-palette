@@ -147,7 +147,14 @@ const MasterServerForm = ({
       serverData.originalId = formData.name;
     }
 
-    onSave(serverData);
+    // Call onSave with the server ID if we're editing an existing server
+    if (server && serverId) {
+      // We're updating an existing server
+      onSave(serverId, serverData);
+    } else {
+      // We're adding a new server
+      onSave(serverData);
+    }
   };
 
   // Check if env var name is valid
