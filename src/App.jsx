@@ -20,6 +20,7 @@ import {
 import { generateUUID, isValidUUID } from "./utils/helpers";
 import "./styles/index.css";
 import "./styles/validation.css";
+import "./styles/overrides.css";
 
 const App = () => {
   const [showConfirmRestoreModal, setShowConfirmRestoreModal] = useState(false);

@@ -216,10 +216,38 @@ const calculateOverrides = (masterConfig, targetConfig) => {
 const applyOverrides = (target, overrides) => {
   if (!overrides || typeof overrides !== "object") return;
 
+  // Special handling for environment variables
+  if (overrides.env && typeof overrides.env === "object") {
+    // Handle env vars specially to support "deletion" overrides
+    if (!target.env) {
+      target.env = {};
+    }
+
+    // First, check for special null value which indicates deletion
+    Object.entries(overrides.env).forEach(([key, value]) => {
+      if (value === null) {
+        // If value is explicitly null, remove this env var
+        if (target.env[key] !== undefined) {
+          delete target.env[key];
+        }
+      } else {
+        // Otherwise apply the override normally
+        target.env[key] = value;
+      }
+    });
+    
+    // Skip normal processing for env since we handled it specially
+    const { env, ...otherOverrides } = overrides;
+    applyOverrides(target, otherOverrides);
+    return;
+  }
+
+  // Normal override processing for other properties
   Object.entries(overrides).forEach(([key, value]) => {
     // If the value is an object and the target has the same key with an object value,
     // recursively apply overrides
     if (
+      key !== "env" && // Skip env, we handled it above
       value !== null &&
       typeof value === "object" &&
       !Array.isArray(value) &&
