@@ -584,20 +584,27 @@ export const applyAutoCorrections = (config, issues) => {
 
     for (let i = 0; i < pathParts.length - 1; i++) {
       const part = pathParts[i];
-
-      // Handle array indices
+      // Handle array path segments
       if (part.includes("[") && part.includes("]")) {
         const arrName = part.substring(0, part.indexOf("["));
         const index = parseInt(
-          part.substring(part.indexOf("[") + 1, part.indexOf("]")),
+          part.substring(part.indexOf("[") + 1, part.indexOf("]"))
         );
-
-        if (!current[arrName]) current[arrName] = [];
-        parent = current;
-        current = current[arrName];
+        if (!current[arrName] || !Array.isArray(current[arrName])) {
+          current[arrName] = [];
+        }
+        // Ensure the array element exists as object
+        if (!current[arrName][index] || typeof current[arrName][index] !== "object") {
+          current[arrName][index] = {};
+        }
+        parent = current[arrName];
+        current = current[arrName][index];
         lastKey = index;
       } else {
-        if (!current[part]) current[part] = {};
+        // Handle object path segments
+        if (!current[part] || typeof current[part] !== "object") {
+          current[part] = {};
+        }
         parent = current;
         current = current[part];
         lastKey = part;
@@ -660,12 +667,20 @@ export const applyAutoCorrections = (config, issues) => {
           );
 
           if (current[arrName] && Array.isArray(current[arrName])) {
-            // Convert to string
-            current[arrName][index] = String(current[arrName][index]);
+            // Use suggestion value if provided, otherwise convert existing value to string
+            if (typeof issue.suggestion.value !== "undefined") {
+              current[arrName][index] = String(issue.suggestion.value);
+            } else {
+              current[arrName][index] = String(current[arrName][index]);
+            }
           }
         } else if (current[finalProp] !== undefined) {
-          // Convert to string
-          current[finalProp] = String(current[finalProp]);
+          // Use suggestion value if provided, otherwise convert existing value to string
+          if (typeof issue.suggestion.value !== "undefined") {
+            current[finalProp] = String(issue.suggestion.value);
+          } else {
+            current[finalProp] = String(current[finalProp]);
+          }
         }
         break;
     }
