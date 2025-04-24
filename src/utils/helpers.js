@@ -43,7 +43,10 @@ export function filterInternalFields(serverConfig) {
 // Helper function to get effective server configuration
 export function getEffectiveConfig(masterServer, profileServer) {
   if (!masterServer) return null;
-  if (!profileServer) return { ...masterServer, enabled: false };
+  if (!profileServer) {
+    const { id, ...rest } = masterServer;
+    return { ...rest, enabled: false };
+  }
 
   const { enabled, overrides } = profileServer;
 
