@@ -94,9 +94,14 @@ describe("MasterServerForm", () => {
   test("renders empty form for new server", () => {
     render(<MasterServerForm onSave={() => {}} onCancel={() => {}} />);
 
-    // Should render empty form with default values
-    expect(screen.getByDisplayValue("")).toBeInTheDocument(); // empty name field
-    expect(screen.getByDisplayValue("npx")).toBeInTheDocument(); // default command
+    // Should render empty name field
+    const nameInput = screen.getByLabelText(/Display Name/i);
+    expect(nameInput).toBeInTheDocument();
+    expect(nameInput.value).toBe("");
+    // Should render default command
+    const commandInput = screen.getByLabelText(/Command/i);
+    expect(commandInput).toBeInTheDocument();
+    expect(commandInput.value).toBe("npx");
 
     // Should not show any args or env vars
     expect(screen.queryByText("PORT")).not.toBeInTheDocument();
