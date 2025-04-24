@@ -53,13 +53,9 @@ describe("MasterServerForm", () => {
       .spyOn(mcpValidator, "getValidationSummary")
       .mockImplementation(() => "Configuration is valid");
 
-    // Mock validation patterns
-    jest
-      .spyOn(validationPatterns, "safeCommand", "get")
-      .mockReturnValue(/^[^;&|<>$\\]*$/);
-    jest
-      .spyOn(validationPatterns, "envVarName", "get")
-      .mockReturnValue(/^[a-zA-Z_][a-zA-Z0-9_]*$/);
+    // Mock validation patterns as plain properties
+    validationPatterns.safeCommand = /^[^;&|<>$\\]*$/;
+    validationPatterns.envVarName = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
   });
 
   afterEach(() => {
@@ -148,7 +144,7 @@ describe("MasterServerForm", () => {
 
   test("shows warning for unsafe command", async () => {
     // Override the mock to use the actual pattern
-    validationPatterns.safeCommand.mockRestore();
+    validationPatterns.safeCommand = /^[^;&|<>$\\]*$/;
 
     render(
       <MasterServerForm
@@ -179,7 +175,7 @@ describe("MasterServerForm", () => {
 
   test("shows warning for invalid env variable name", async () => {
     // Override the mock to use the actual pattern
-    validationPatterns.envVarName.mockRestore();
+    validationPatterns.envVarName = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
     render(
       <MasterServerForm

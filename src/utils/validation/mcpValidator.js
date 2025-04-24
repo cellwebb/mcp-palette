@@ -657,31 +657,39 @@ export const applyAutoCorrections = (config, issues) => {
         break;
 
       case "convert":
-        if (finalProp.includes("[") && finalProp.includes("]")) {
-          const arrName = finalProp.substring(0, finalProp.indexOf("["));
-          const index = parseInt(
-            finalProp.substring(
-              finalProp.indexOf("[") + 1,
-              finalProp.indexOf("]"),
-            ),
-          );
-
-          if (current[arrName] && Array.isArray(current[arrName])) {
-            // Use suggestion value if provided, otherwise convert existing value to string
-            if (typeof issue.suggestion.value !== "undefined") {
-              current[arrName][index] = String(issue.suggestion.value);
-            } else {
-              current[arrName][index] = String(current[arrName][index]);
+        // More robust path walker for mixed object/array paths
+        function parsePath(path) {
+          // Splits 'args[1].foo[2].bar' -> ['args', 1, 'foo', 2, 'bar']
+          const parts = [];
+          path.split('.').forEach(seg => {
+            const match = seg.match(/([a-zA-Z0-9_$]+)(\[(\d+)\])?/);
+            if (match) {
+              parts.push(match[1]);
+              if (match[3] !== undefined) parts.push(Number(match[3]));
             }
-          }
-        } else if (current[finalProp] !== undefined) {
-          // Use suggestion value if provided, otherwise convert existing value to string
-          if (typeof issue.suggestion.value !== "undefined") {
-            current[finalProp] = String(issue.suggestion.value);
-          } else {
-            current[finalProp] = String(current[finalProp]);
-          }
+          });
+          return parts;
         }
+        function setByPath(obj, path, val) {
+          const parts = parsePath(path);
+          let curr = obj;
+          for (let i = 0; i < parts.length - 1; i++) {
+            curr = curr[parts[i]];
+          }
+          curr[parts[parts.length - 1]] = val;
+        }
+        function getByPath(obj, path) {
+          const parts = parsePath(path);
+          let curr = obj;
+          for (let i = 0; i < parts.length; i++) {
+            curr = curr[parts[i]];
+          }
+          return curr;
+        }
+        const valueToSet = typeof issue.suggestion.value !== "undefined"
+          ? String(issue.suggestion.value)
+          : String(getByPath(corrected, issue.path));
+        setByPath(corrected, issue.path, valueToSet);
         break;
     }
   });
