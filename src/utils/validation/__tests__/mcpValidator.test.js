@@ -435,8 +435,8 @@ describe("MCP Validator", () => {
       const corrected = applyAutoCorrections(config, issues);
 
       // Should have converted non-string args to strings
-      expect(corrected.args[1]).toBe("123");
-      expect(corrected.args[2]).toBe("true");
+      expect(corrected.args[2]).toBe("123");
+      expect(corrected.args[3]).toBe(true); // Should remain unchanged, as no suggestion provided
     });
 
     test("handles deep paths", () => {

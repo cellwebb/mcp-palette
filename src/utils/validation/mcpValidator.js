@@ -659,13 +659,19 @@ export const applyAutoCorrections = (config, issues) => {
       case "convert":
         // More robust path walker for mixed object/array paths
         function parsePath(path) {
-          // Splits 'args[1].foo[2].bar' -> ['args', 1, 'foo', 2, 'bar']
+          // Handles paths like 'args[1]', 'foo.bar[2]', etc.
           const parts = [];
+          // Split on dots, but also handle cases where there are no dots (e.g., 'args[1]')
           path.split('.').forEach(seg => {
-            const match = seg.match(/([a-zA-Z0-9_$]+)(\[(\d+)\])?/);
-            if (match) {
-              parts.push(match[1]);
-              if (match[3] !== undefined) parts.push(Number(match[3]));
+            let m;
+            // Extract all [n] after the property
+            const re = /([a-zA-Z0-9_$]+)|\[(\d+)\]/g;
+            while ((m = re.exec(seg)) !== null) {
+              if (m[1] !== undefined) {
+                parts.push(m[1]);
+              } else if (m[2] !== undefined) {
+                parts.push(Number(m[2]));
+              }
             }
           });
           return parts;
@@ -689,7 +695,7 @@ export const applyAutoCorrections = (config, issues) => {
         const valueToSet = typeof issue.suggestion.value !== "undefined"
           ? String(issue.suggestion.value)
           : String(getByPath(corrected, issue.path));
-        setByPath(corrected, issue.path, valueToSet);
+        setByPath(corrected, issue.path, String(valueToSet));
         break;
     }
   });
