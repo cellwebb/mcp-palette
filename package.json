@@ -21,7 +21,8 @@
     "test:coverage": "jest --coverage",
     "test:validator": "jest src/utils/validation/__tests__/mcpValidator.test.js",
     "test:components": "jest src/components",
-    "test:validation": "jest src/components/validation"
+    "test:validation": "jest src/components/validation",
+    "electron:build": "electron-builder build --mac --x64 --dir"
   },
   "dependencies": {
     "electron-store": "^8.1.0",
@@ -78,6 +79,7 @@
     ],
     "mac": {
       "target": "dir"
-    }
+    },
+    "dir": "dist"
   }
 }
