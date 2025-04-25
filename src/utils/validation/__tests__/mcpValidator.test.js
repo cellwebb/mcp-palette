@@ -460,6 +460,13 @@ describe("MCP Validator", () => {
       expect(corrected.args[3]).toBe(true); // Should remain unchanged, as no suggestion provided
     });
 
+    test("removes array elements with remove suggestion", () => {
+      const config = { arr: ["a", "b", "c"] };
+      const issues = [{ path: "arr[1]", suggestion: { action: "remove" } }];
+      const corrected = applyAutoCorrections(config, issues);
+      expect(corrected.arr).toEqual(["a", "c"]);
+    });
+
     test("handles deep paths", () => {
       const config = {
         resources: [
