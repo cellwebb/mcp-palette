@@ -164,7 +164,7 @@ export const convertFinalConfigToInternal = (
  * @param {Object} targetConfig - The target server configuration
  * @returns {Object} - Overrides object
  */
-const calculateOverrides = (masterConfig, targetConfig) => {
+export const calculateOverrides = (masterConfig, targetConfig) => {
   const overrides = {};
 
   // Compare each property in targetConfig with masterConfig
@@ -213,7 +213,7 @@ const calculateOverrides = (masterConfig, targetConfig) => {
  * @param {Object} target - Target configuration object
  * @param {Object} overrides - Overrides to apply
  */
-const applyOverrides = (target, overrides) => {
+export const applyOverrides = (target, overrides) => {
   if (!overrides || typeof overrides !== "object") return;
 
   // Special handling for environment variables

@@ -1,4 +1,4 @@
-import { findProfileByIdOrName, getServerDisplayName, generateFinalProfileConfig, convertFinalConfigToInternal } from '../profileUtils';
+import { findProfileByIdOrName, getServerDisplayName, generateFinalProfileConfig, convertFinalConfigToInternal, calculateOverrides, applyOverrides } from '../profileUtils';
 
 describe('profileUtils', () => {
   describe('findProfileByIdOrName', () => {
@@ -88,6 +88,37 @@ describe('profileUtils', () => {
       expect(updated.name).toBe('P');
       expect(updated.servers.mid.enabled).toBe(true);
       expect(updated.servers.mid.overrides).toEqual({ env: { A: '2' } });
+    });
+  });
+
+  describe('calculateOverrides', () => {
+    test('calculates overrides for primitives, arrays, nested objects, and new keys', () => {
+      const masterConfig = { a: 1, b: { x: 1, y: 2 }, c: [1, 2], originalId: 'id' };
+      const targetConfig = { a: 1, b: { x: 5 }, c: [1, 2, 3], d: 4, originalId: 'ignore' };
+      const overrides = calculateOverrides(masterConfig, targetConfig);
+      expect(overrides).toEqual({ b: { x: 5 }, c: [1, 2, 3], d: 4 });
+    });
+
+    test('returns empty object when no differences', () => {
+      const masterConfig = { a: 1, b: { x: 1 }, c: [1] };
+      const overrides = calculateOverrides(masterConfig, { a: 1, b: { x: 1 }, c: [1] });
+      expect(overrides).toEqual({});
+    });
+  });
+
+  describe('applyOverrides', () => {
+    test('applies primitive and nested object overrides deeply', () => {
+      const target = { a: 1, b: { x: 1, y: 2 } };
+      const overrides = { a: 2, b: { y: 3 } };
+      applyOverrides(target, overrides);
+      expect(target).toEqual({ a: 2, b: { x: 1, y: 3 } });
+    });
+
+    test('handles array overrides and deletion in env', () => {
+      const target = { env: { X: '1', Y: '2' }, list: [1, 2] };
+      const overrides = { list: [3, 4], env: { X: null, Z: '3' } };
+      applyOverrides(target, overrides);
+      expect(target).toEqual({ env: { Y: '2', Z: '3' }, list: [3, 4] });
     });
   });
 });
