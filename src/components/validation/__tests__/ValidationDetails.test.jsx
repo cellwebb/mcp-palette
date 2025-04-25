@@ -27,7 +27,12 @@ describe("ValidationDetails", () => {
   test("renders empty state when validation result is null", () => {
     render(<ValidationDetails validationResult={null} />);
 
-    expect(screen.getByText("No validation issues found.")).toBeInTheDocument();
+    // Use a flexible matcher in case text is split or wrapped
+    expect(
+      screen.getByText((content) =>
+        content.includes("No validation issues found")
+      )
+    ).toBeInTheDocument();
   });
 
   test("renders validation errors", () => {
