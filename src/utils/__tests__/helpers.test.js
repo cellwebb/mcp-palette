@@ -18,6 +18,61 @@ describe('helpers', () => {
       expect(deepMerge(null, 5)).toBe(5);
       expect(deepMerge({ a: 1 }, 'string')).toBe('string');
     });
+
+    test('returns source when target is not an object', () => {
+      const target = null;
+      const source = { a: 1 };
+      expect(deepMerge(target, source)).toEqual({ a: 1 });
+
+      const target2 = 'string';
+      expect(deepMerge(target2, source)).toEqual({ a: 1 });
+    });
+
+    test('returns source when source is not an object', () => {
+      const target = { a: 1 };
+      const source = null;
+      expect(deepMerge(target, source)).toBeNull();
+
+      const source2 = 'string';
+      expect(deepMerge(target, source2)).toBe('string');
+    });
+
+    test('handles null/undefined inputs gracefully', () => {
+      expect(deepMerge(null, null)).toBeNull();
+      expect(deepMerge(undefined, undefined)).toBeUndefined();
+      expect(deepMerge({a: 1}, null)).toBeNull();
+      expect(deepMerge(null, {a: 1})).toEqual({a: 1});
+      expect(deepMerge({a: 1}, undefined)).toBeUndefined();
+      expect(deepMerge(undefined, {a: 1})).toEqual({a: 1});
+    });
+
+    test('replaces arrays, does not merge them', () => {
+      const target = { a: [1, 2] };
+      const source = { a: [3, 4] };
+      expect(deepMerge(target, source)).toEqual({ a: [3, 4] });
+    });
+
+    test('source value replaces target value if not an object', () => {
+      const target = { a: { b: 1 } };
+      const source = { a: 'string' };
+      expect(deepMerge(target, source)).toEqual({ a: 'string' });
+
+      const target2 = { a: 'string' };
+      const source2 = { a: { b: 1 } };
+      expect(deepMerge(target2, source2)).toEqual({ a: { b: 1 } });
+    });
+
+    test('does not modify original objects', () => {
+      const target = { a: 1, b: { c: 2 } };
+      const source = { b: { d: 3 }, e: 4 };
+      const targetCopy = JSON.parse(JSON.stringify(target));
+      const sourceCopy = JSON.parse(JSON.stringify(source));
+
+      deepMerge(target, source);
+
+      expect(target).toEqual(targetCopy);
+      expect(source).toEqual(sourceCopy);
+    });
   });
 
   describe('hasOverrides', () => {

@@ -1,16 +1,26 @@
 // Helper function to deep merge objects
 export function deepMerge(target, source) {
-  const result = { ...target };
-
-  if (typeof target !== "object" || typeof source !== "object") {
+  // If source is not an object (or null), return source directly
+  if (typeof source !== "object" || source === null) {
     return source;
   }
 
+  // Start with a shallow copy of target, or an empty object if target isn't an object/null
+  const result = (typeof target === 'object' && target !== null) ? { ...target } : {};
+
   Object.keys(source).forEach((key) => {
-    if (source[key] instanceof Object && key in target) {
-      result[key] = deepMerge(target[key], source[key]);
+    const sourceValue = source[key];
+    const targetValue = result[key]; // Check against the current result/target value
+
+    // If both sourceValue and targetValue are non-null, non-array objects, recurse
+    if (
+      sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue) &&
+      targetValue && typeof targetValue === 'object' && !Array.isArray(targetValue)
+    ) {
+      result[key] = deepMerge(targetValue, sourceValue);
     } else {
-      result[key] = source[key];
+      // Otherwise, source value replaces target value (handles primitives, arrays, nulls, etc.)
+      result[key] = sourceValue;
     }
   });
 
