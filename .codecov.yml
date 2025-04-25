@@ -1,0 +1,29 @@
+# Recommended Codecov configuration for a JS/Electron/React project
+coverage:
+  status:
+    project:
+      default:
+        # Set a minimum project-wide coverage threshold (optional)
+        target: 80%
+        threshold: 1%
+    patch:
+      default:
+        # Set a minimum coverage for changed lines (optional)
+        target: 70%
+        threshold: 1%
+  precision: 2
+  round: down
+  range: "70...100"
+ignore:
+  - "**/__mocks__/**"
+  - "**/*.test.js"
+  - "**/*.test.jsx"
+  - "**/test-utils/**"
+  - "**/scripts/**"
+  - "**/dist/**"
+  - "**/electron/**"
+  - "**/public/**"
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: true

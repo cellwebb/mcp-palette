@@ -64,12 +64,15 @@ For usage details and feature explanations, see the [Usage Guide](docs/USAGE.md)
 
 - [Installation Guide](docs/INSTALLATION.md)
 - [Usage Guide](docs/USAGE.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
 - [Contributing Guide](docs/CONTRIBUTING.md)
 - [Release Guide](docs/RELEASING.md)
 
 ## 🏗️ Development
 
 This project uses Vite for frontend development and Electron for the desktop application wrapper.
+
+For an overview of the project structure and core concepts, see the [Architecture Overview](docs/ARCHITECTURE.md).
 
 ### Continuous Integration
 
