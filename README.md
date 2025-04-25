@@ -2,7 +2,7 @@
 [![Build Status](https://github.com/cellwebb/mcp-palette/actions/workflows/ci.yml/badge.svg)](https://github.com/cellwebb/mcp-palette/actions/workflows/ci.yml)
 [![Coverage Status](https://codecov.io/gh/cellwebb/mcp-palette/branch/main/graph/badge.svg)](https://codecov.io/gh/cellwebb/mcp-palette)
 [![npm version](https://img.shields.io/npm/v/mcp-palette.svg)](https://www.npmjs.com/package/mcp-palette)
-[![License: MIT](https://img.shields.io/npm/l/mcp-palette.svg)](https://github.com/cellwebb/mcp-palette/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
 
 MCP Palette is a modern, user-friendly desktop application for managing Model Context Protocol (MCP) server configurations. It provides a centralized interface to configure, manage, and deploy MCP servers for use with Large Language Models (LLMs) and AI assistants.
 
