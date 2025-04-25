@@ -77,7 +77,7 @@
       "electron/**/*"
     ],
     "mac": {
-      "target": "dir"
+      "target": ["dmg", "zip"]
     }
   }
 }
