@@ -201,6 +201,27 @@ describe("MCP Validator", () => {
       expect(stringResult.valid).toBe(false);
       expect(stringResult.errors.length).toBeGreaterThan(0);
     });
+
+    test("errors when mcpServers is not an object", () => {
+      const config = { mcpServers: [] };
+      const result = validateMcpConfig(config);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].path).toBe("mcpServers");
+      expect(result.errors[0].suggestion).toMatchObject({
+        action: "replace",
+        value: {},
+      });
+    });
+
+    test("round-trip auto-correction yields valid configuration", () => {
+      const config = { mcpServers: [] };
+      const first = validateMcpConfig(config);
+      const corrected = applyAutoCorrections(config, first.errors);
+      const second = validateMcpConfig(corrected);
+      expect(second.valid).toBe(true);
+      expect(second.errors).toHaveLength(0);
+    });
   });
 
   describe("formatSingleServerConfig", () => {
