@@ -827,21 +827,24 @@ const App = () => {
                   ) : (
                     <JsonEditor
                       json={JSON.stringify(
-                        generateFinalProfileConfig(
-                          currentProfile,
-                          serverMasterList,
-                        ),
+                        (() => {
+                          try {
+                            const cfg = generateFinalProfileConfig(
+                              currentProfile,
+                              serverMasterList,
+                            );
+                            return cfg || { mcpServers: {} };
+                          } catch (e) {
+                            console.error('Error generating profile JSON:', e);
+                            return { mcpServers: {} };
+                          }
+                        })(),
                         null,
                         2,
                       )}
                       readOnly={true}
                       isProfileView={true}
                       profileName={activeProfile}
-                      onViewServerJson={(serverId) => {
-                        setSelectedServerMaster(serverId);
-                        setViewingServerJson(true);
-                      }}
-                      onRestoreDefaults={handleRestoreServerDefaults}
                     />
                   )}
                 </>
