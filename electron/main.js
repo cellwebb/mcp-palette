@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, Menu } = require("electron");
 const { createAppMenu } = require("./menu");
 const path = require("path");
 const fs = require("fs");
+const url = require("url");
 const {
   store,
   setupDefaultProfiles,
@@ -43,7 +44,13 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     // In production, load the built files
-    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+    mainWindow.loadURL(
+      url.format({
+        pathname: path.join(__dirname, "../dist/index.html"),
+        protocol: "file:",
+        slashes: true,
+      }),
+    );
   }
 
   // Wait for the content to load before showing the window
