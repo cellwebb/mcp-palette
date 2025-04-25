@@ -1,4 +1,8 @@
 # MCP Palette: Model Context Protocol Server Manager
+[![Build Status](https://github.com/cellwebb/mcp-palette/actions/workflows/ci.yml/badge.svg)](https://github.com/cellwebb/mcp-palette/actions/workflows/ci.yml)
+[![Coverage Status](https://codecov.io/gh/cellwebb/mcp-palette/branch/main/graph/badge.svg)](https://codecov.io/gh/cellwebb/mcp-palette)
+[![npm version](https://img.shields.io/npm/v/mcp-palette.svg)](https://www.npmjs.com/package/mcp-palette)
+[![License: MIT](https://img.shields.io/npm/l/mcp-palette.svg)](https://github.com/cellwebb/mcp-palette/blob/main/LICENSE)
 
 MCP Palette is a modern, user-friendly desktop application for managing Model Context Protocol (MCP) server configurations. It provides a centralized interface to configure, manage, and deploy MCP servers for use with Large Language Models (LLMs) and AI assistants.
 
@@ -50,6 +54,10 @@ chmod +x start.sh  # Make the script executable (first time only)
 ## 🏗️ Development
 
 This project uses Vite for frontend development and Electron for the desktop application wrapper.
+
+### Continuous Integration
+
+This project uses GitHub Actions for continuous integration. On each push or pull request to the `main` branch, the CI workflow installs dependencies, runs tests with coverage, and uploads coverage reports to Codecov.
 
 ```bash
 # Start Vite development server
@@ -157,7 +165,9 @@ Contributions are welcome! Feel free to submit issues or pull requests.
 
 ## 📝 License
 
-MIT
+MIT License
+
+See [LICENSE](./LICENSE) for details.
 
 ## 📚 Related Projects
 
