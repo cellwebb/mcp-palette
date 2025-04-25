@@ -24,32 +24,37 @@ MCP Palette is a modern, user-friendly desktop application for managing Model Co
 - Create specialized profiles for different AI assistant use cases
 - Deploy consistent MCP server configurations in production environments
 
-## 💻 Installation
+## 🖥️ Installation & Usage
 
-### Prerequisites
+**For End Users:**
 
-- Node.js 18+ and npm
+1. Go to the [Releases page](https://github.com/cellwebb/mcp-palette/releases) and download the installer or binary for your operating system (e.g., `.dmg` for Mac, `.exe` for Windows).
+2. Run the installer and follow the prompts to install MCP Palette on your computer.
+3. Launch MCP Palette from your Applications folder (Mac) or Start Menu/Desktop (Windows).
 
-### Setup
+**For Developers/Contributors:**
 
-1. Install dependencies:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/cellwebb/mcp-palette.git
+   cd mcp-palette
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the app in development mode:
+   ```bash
+   npm run electron:dev
+   ```
+4. Build a distributable version (installer/binary):
+   ```bash
+   npm run electron:build
+   ```
+   The output will appear in the `dist/` directory.
 
-```bash
-npm install
-```
-
-2. Start the application in development mode:
-
-```bash
-npm run electron:dev
-```
-
-Alternatively, use the provided start script:
-
-```bash
-chmod +x start.sh  # Make the script executable (first time only)
-./start.sh
-```
+**Note:**
+- If you need a Windows or Linux installer and are on a Mac, use GitHub Actions or a Windows/Linux machine to build for those platforms. See below for cross-platform automation.
 
 ## 🏗️ Development
 
@@ -66,6 +71,15 @@ npm run dev
 # Start Electron with Vite in development mode
 npm run electron:dev
 ```
+
+### Cross-Platform Builds & Automated Releases
+
+To build installers for all platforms and automate uploading to GitHub Releases:
+- Use GitHub Actions to build on Windows, Mac, and Linux runners.
+- Configure Electron Builder in your workflow to upload artifacts to Releases automatically.
+- See the [Electron Builder docs on CI/CD](https://www.electron.build/auto-update#github-actions) for sample workflows.
+
+If you need help setting up a workflow, let us know!
 
 ## 📦 Building for Production
 
