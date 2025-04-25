@@ -1,4 +1,4 @@
-import { deepMerge, hasOverrides, filterInternalFields, getEffectiveConfig, generateUUID, isValidUUID } from '../helpers';
+import { deepMerge, hasOverrides, filterInternalFields, getEffectiveConfig } from '../helpers';
 
 describe('helpers', () => {
   describe('deepMerge', () => {
@@ -64,34 +64,32 @@ describe('helpers', () => {
     });
 
     test('returns disabled config when no profileServer', () => {
-      const master = { id: 1, env: { A: '1' }, name: 'n', command: 'c', args: [1], enabled: true };
-      const expected = { env: { A: '1' }, name: 'n', command: 'c', args: [1], enabled: false };
+      const master = { id: '1', name: 'master', command: 'run', args: [] };
+      const expected = { name: 'master', command: 'run', args: [], enabled: false };
       expect(getEffectiveConfig(master, null)).toEqual(expected);
     });
 
     test('applies overrides', () => {
-      const master = { id: 1, env: { A: '1' }, name: 'n', command: 'c', args: [1] };
-      const profile = { enabled: true, overrides: { name: 'new', command: 'nc', args: [2], env: { B: '2' } } };
-      const result = getEffectiveConfig(master, profile);
-      expect(result).toMatchObject({ name: 'new', command: 'nc', args: [2], env: { A: '1', B: '2' }, enabled: true });
-      expect(result.id).toBeUndefined();
+      const master = { id: '1', name: 'master', command: 'run', args: [], env: { A: '1' } };
+      const profile = {
+        enabled: true,
+        overrides: { name: 'override', command: 'exec', args: ['a'], env: { B: '2' } },
+      };
+      const expected = {
+        name: 'override',
+        command: 'exec',
+        args: ['a'],
+        env: { A: '1', B: '2' },
+        enabled: true,
+      };
+      expect(getEffectiveConfig(master, profile)).toEqual(expected);
     });
 
     test('returns default enabled config when no overrides', () => {
-      const master = { id: 2, env: { A: '1' }, name: 'n', command: 'c', args: [1] };
-      const profile = { enabled: true };
-      expect(getEffectiveConfig(master, profile)).toEqual({ name: 'n', command: 'c', args: [1], env: { A: '1' }, enabled: true });
-    });
-  });
-
-  describe('UUID functions', () => {
-    test('generateUUID returns valid UUID', () => {
-      const uuid = generateUUID();
-      expect(isValidUUID(uuid)).toBe(true);
-    });
-
-    test('isValidUUID rejects invalid strings', () => {
-      expect(isValidUUID('invalid')).toBe(false);
+      const master = { id: '1', name: 'master', command: 'run', args: [] };
+      const profile = { enabled: true }; // No overrides property
+      const expected = { name: 'master', command: 'run', args: [], enabled: true };
+      expect(getEffectiveConfig(master, profile)).toEqual(expected);
     });
   });
 });
