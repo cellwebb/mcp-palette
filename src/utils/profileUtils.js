@@ -53,15 +53,27 @@ export const generateFinalProfileConfig = (profile, masterServers) => {
     // Get the server name to use as the key (use originalId as fallback)
     const serverKey = serverConfig.name || serverConfig.originalId || serverId;
 
-    // Extract only the command and args properties for the MCP spec format
-    finalConfig.mcpServers[serverKey] = {
-      command: serverConfig.command,
-      args: serverConfig.args,
-    };
+    // Determine if overrides only contain env key
+    const overrideKeys = profileServer.overrides ? Object.keys(profileServer.overrides) : [];
+    const onlyEnvOverride = overrideKeys.length === 1 && overrideKeys[0] === 'env';
 
-    // Include environment variables if they exist
-    if (serverConfig.env && Object.keys(serverConfig.env).length > 0) {
-      finalConfig.mcpServers[serverKey].env = serverConfig.env;
+    if (onlyEnvOverride) {
+      // Only env overrides: omit command and args
+      finalConfig.mcpServers[serverKey] = {};
+      if (serverConfig.env && Object.keys(serverConfig.env).length > 0) {
+        finalConfig.mcpServers[serverKey].env = serverConfig.env;
+      }
+    } else {
+      // Extract only the command and args properties for the MCP spec format
+      finalConfig.mcpServers[serverKey] = {
+        command: serverConfig.command,
+        args: serverConfig.args,
+      };
+
+      // Include environment variables if they exist
+      if (serverConfig.env && Object.keys(serverConfig.env).length > 0) {
+        finalConfig.mcpServers[serverKey].env = serverConfig.env;
+      }
     }
   });
 

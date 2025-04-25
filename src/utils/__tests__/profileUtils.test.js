@@ -24,6 +24,11 @@ describe('profileUtils', () => {
     test('returns null when not found', () => {
       expect(findProfileByIdOrName(profiles, 'Charlie')).toBeNull();
     });
+
+    test('returns null for valid UUID not in list', () => {
+      const missingUuid = '22222222-2222-4222-8222-222222222222';
+      expect(findProfileByIdOrName(profiles, missingUuid)).toBeNull();
+    });
   });
 
   describe('getServerDisplayName', () => {
@@ -41,6 +46,10 @@ describe('profileUtils', () => {
 
     test('returns Unnamed Server when no name or originalId', () => {
       expect(getServerDisplayName({})).toBe('Unnamed Server');
+    });
+
+    test('returns Unnamed Server for empty name and originalId strings', () => {
+      expect(getServerDisplayName({ name: '', originalId: '' })).toBe('Unnamed Server');
     });
   });
 
@@ -92,6 +101,29 @@ describe('profileUtils', () => {
       const result = generateFinalProfileConfig(profile, masterServers);
       expect(result.mcpServers).toHaveProperty('s1');
       expect(result.mcpServers.s1).toEqual({ command: 'cmd', args: [] });
+    });
+
+    test('includes only env when overrides only contain env keys', () => {
+      const masterServers = {
+        s1: { id: 's1', name: 'Server1', command: 'c1', args: ['a'], env: { X: '1', Y: '2' } },
+      };
+      const profile = {
+        servers: {
+          s1: { enabled: true, overrides: { env: { X: null, Z: '3' } } },
+        },
+      };
+      const result = generateFinalProfileConfig(profile, masterServers);
+      expect(result.mcpServers).toHaveProperty('Server1');
+      expect(result.mcpServers.Server1).toEqual({ env: { Y: '2', Z: '3' } });
+    });
+
+    test('returns empty config when profile.servers is empty', () => {
+      const masterServers = {
+        s1: { id: 's1', name: 'Server1', command: 'c', args: [], env: {} },
+      };
+      const profile = { servers: {} };
+      const result = generateFinalProfileConfig(profile, masterServers);
+      expect(result).toEqual({ mcpServers: {} });
     });
   });
 
@@ -153,6 +185,24 @@ describe('profileUtils', () => {
       const updated = convertFinalConfigToInternal({}, currentProfile, masterServers);
       expect(updated.servers.a.enabled).toBe(false);
       expect(updated.servers.b.enabled).toBe(false);
+    });
+
+    test('matches by originalId when name missing in new format', () => {
+      const masterServers = {
+        s1: { id: 's1', originalId: 'orig1', command: 'cmd', args: ['a'], env: {} },
+        s2: { id: 's2', name: 'Name2', command: 'c2', args: ['b'], env: {} },
+      };
+      const currentProfile = { id: 'pid', name: 'P', servers: {} };
+      const finalConfig = {
+        mcpServers: {
+          orig1: { command: 'cmd', args: ['a'], env: {} },
+          Name2: { command: 'c2', args: ['b'], env: {} },
+        },
+      };
+      const updated = convertFinalConfigToInternal(finalConfig, currentProfile, masterServers);
+      expect(updated.servers.s1.enabled).toBe(true);
+      expect(updated.servers.s1.overrides).toEqual({});
+      expect(updated.servers.s2.enabled).toBe(true);
     });
   });
 
