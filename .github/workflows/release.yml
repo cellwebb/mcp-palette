@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build app
+        run: npm run electron:build
+      - name: Package app
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            npx electron-builder --linux
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            npx electron-builder --mac
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            npx electron-builder --win
+          fi
+        shell: bash
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}-artifacts
+          path: dist/
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

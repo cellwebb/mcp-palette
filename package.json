@@ -1,8 +1,8 @@
 {
   "name": "mcp-palette",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "A palette for Model Context Protocol servers",
-  "author": "",
+  "author": "cellwebb",
   "license": "MIT",
   "main": "electron/main.js",
   "scripts": {
@@ -21,7 +21,8 @@
     "test:coverage": "jest --coverage",
     "test:validator": "jest src/utils/validation/__tests__/mcpValidator.test.js",
     "test:components": "jest src/components",
-    "test:validation": "jest src/components/validation"
+    "test:validation": "jest src/components/validation",
+    "electron:build": "electron-builder"
   },
   "dependencies": {
     "electron-store": "^8.1.0",
@@ -50,6 +51,25 @@
     "vite": "^4.4.5",
     "wait-on": "^7.0.1"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cellwebb/mcp-palette.git"
+  },
+  "keywords": [
+    "electron",
+    "vite",
+    "mcp",
+    "palette",
+    "llm",
+    "ai",
+    "desktop"
+  ],
+  "files": [
+    "dist",
+    "electron",
+    "src",
+    "main.js"
+  ],
   "build": {
     "appId": "com.electron.mcp-palette",
     "productName": "MCP Palette",

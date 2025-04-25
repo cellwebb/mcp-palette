@@ -1,4 +1,8 @@
 # MCP Palette: Model Context Protocol Server Manager
+[![Build Status](https://github.com/cellwebb/mcp-palette/actions/workflows/ci.yml/badge.svg)](https://github.com/cellwebb/mcp-palette/actions/workflows/ci.yml)
+[![Coverage Status](https://codecov.io/gh/cellwebb/mcp-palette/branch/main/graph/badge.svg)](https://codecov.io/gh/cellwebb/mcp-palette)
+[![npm version](https://img.shields.io/npm/v/mcp-palette.svg)](https://www.npmjs.com/package/mcp-palette)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
 
 MCP Palette is a modern, user-friendly desktop application for managing Model Context Protocol (MCP) server configurations. It provides a centralized interface to configure, manage, and deploy MCP servers for use with Large Language Models (LLMs) and AI assistants.
 
@@ -20,36 +24,59 @@ MCP Palette is a modern, user-friendly desktop application for managing Model Co
 - Create specialized profiles for different AI assistant use cases
 - Deploy consistent MCP server configurations in production environments
 
-## 💻 Installation
+## 🖥️ Installation & Usage
 
-### Prerequisites
+For installation instructions, see the [Installation Guide](docs/INSTALLATION.md).
 
-- Node.js 18+ and npm
+**For End Users:**
 
-### Setup
+1. Go to the [Releases page](https://github.com/cellwebb/mcp-palette/releases) and download the installer or binary for your operating system (e.g., `.dmg` for Mac, `.exe` for Windows).
+2. Run the installer and follow the prompts to install MCP Palette on your computer.
+3. Launch MCP Palette from your Applications folder (Mac) or Start Menu/Desktop (Windows).
 
-1. Install dependencies:
+For usage details and feature explanations, see the [Usage Guide](docs/USAGE.md).
 
-```bash
-npm install
-```
+**For Developers/Contributors:**
 
-2. Start the application in development mode:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/cellwebb/mcp-palette.git
+   cd mcp-palette
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the app in development mode:
+   ```bash
+   npm run electron:dev
+   ```
+4. Build a distributable version (installer/binary):
+   ```bash
+   npm run electron:build
+   ```
+   The output will appear in the `dist/` directory.
 
-```bash
-npm run electron:dev
-```
+**Note:**
+- If you need a Windows or Linux installer and are on a Mac, use GitHub Actions or a Windows/Linux machine to build for those platforms. See below for cross-platform automation.
 
-Alternatively, use the provided start script:
+## 📖 Documentation
 
-```bash
-chmod +x start.sh  # Make the script executable (first time only)
-./start.sh
-```
+- [Installation Guide](docs/INSTALLATION.md)
+- [Usage Guide](docs/USAGE.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Contributing Guide](docs/CONTRIBUTING.md)
+- [Release Guide](docs/RELEASING.md)
 
 ## 🏗️ Development
 
 This project uses Vite for frontend development and Electron for the desktop application wrapper.
+
+For an overview of the project structure and core concepts, see the [Architecture Overview](docs/ARCHITECTURE.md).
+
+### Continuous Integration
+
+This project uses GitHub Actions for continuous integration. On each push or pull request to the `main` branch, the CI workflow installs dependencies, runs tests with coverage, and uploads coverage reports to Codecov.
 
 ```bash
 # Start Vite development server
@@ -58,6 +85,15 @@ npm run dev
 # Start Electron with Vite in development mode
 npm run electron:dev
 ```
+
+### Cross-Platform Builds & Automated Releases
+
+To build installers for all platforms and automate uploading to GitHub Releases:
+- Use GitHub Actions to build on Windows, Mac, and Linux runners.
+- Configure Electron Builder in your workflow to upload artifacts to Releases automatically.
+- See the [Electron Builder docs on CI/CD](https://www.electron.build/auto-update#github-actions) for sample workflows.
+
+If you need help setting up a workflow, let us know!
 
 ## 📦 Building for Production
 
@@ -91,6 +127,10 @@ npm test:validation # Validation tests
 - All necessary dev dependencies (`jest`, `@testing-library/react`, `babel-jest`, etc.) are included in `package.json`.
 - File and style mocks are provided in `__mocks__/` for robust component testing.
 - Babel is used for modern JS/React syntax support (see `.babelrc`).
+
+For contributing, see the [Contributing Guide](docs/CONTRIBUTING.md).
+
+For release instructions, see the [Release Guide](docs/RELEASING.md).
 
 ## 🛠️ Babel
 
@@ -157,7 +197,9 @@ Contributions are welcome! Feel free to submit issues or pull requests.
 
 ## 📝 License
 
-MIT
+MIT License
+
+See [LICENSE](./LICENSE) for details.
 
 ## 📚 Related Projects
 
