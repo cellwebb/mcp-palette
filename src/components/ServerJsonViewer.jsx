@@ -4,6 +4,7 @@ import { filterInternalFields } from "../utils/helpers";
 import {
   validateMcpServerConfig,
   formatSingleServerConfig,
+  applyAutoCorrections,
 } from "../utils/validation/mcpValidator";
 import { ValidationBadge, ValidationDetails } from "./validation";
 import "./ServerJsonViewer.css";
@@ -49,10 +50,10 @@ const ServerJsonViewer = ({ server, serverId, onBack, onUpdateServer, profileNam
   const handleApplyFix = (issue) => {
     if (!issue.suggestion || !onUpdateServer) return;
 
-    // In a real implementation, this would apply the fix and update the server
-    // For now, we'll just log the suggestion
-    console.log("Would apply fix:", issue.suggestion);
-    alert("Fix application will be implemented in the next phase");
+    // Gather all issues for this server (simulate as if only this issue is being fixed)
+    // In a real implementation, you might want to pass all errors with suggestions
+    const corrected = applyAutoCorrections(server, [issue]);
+    onUpdateServer(corrected);
   };
 
   // Toggle validation details visibility

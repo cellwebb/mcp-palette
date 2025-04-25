@@ -16,6 +16,14 @@ module.exports = {
     "^.+\\.(js|jsx|ts|tsx)$": "babel-jest",
   },
 
+  // Ensure ESM modules like react-monaco-editor and monaco-editor are transformed
+  transformIgnorePatterns: [
+    "/node_modules/(?!(react-monaco-editor|monaco-editor)/)"
+  ],
+
+  // Remove extensionsToTreatAsEsm (not needed for .js), keep moduleFileExtensions for completeness
+  moduleFileExtensions: ["js", "jsx", "json", "node", "mjs", "cjs"],
+
   // Set up Jest to use testing-library
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.js"],
 
@@ -24,6 +32,9 @@ module.exports = {
     "\\.(css|less|scss|sass)$": "<rootDir>/__mocks__/styleMock.js",
     "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
       "<rootDir>/__mocks__/fileMock.js",
+    // Mock react-monaco-editor and monaco-editor to avoid ESM import issues in tests
+    "^react-monaco-editor$": "<rootDir>/__mocks__/monacoMock.js",
+    "^monaco-editor$": "<rootDir>/__mocks__/monacoMock.js",
   },
 
   // Coverage configuration

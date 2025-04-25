@@ -584,20 +584,27 @@ export const applyAutoCorrections = (config, issues) => {
 
     for (let i = 0; i < pathParts.length - 1; i++) {
       const part = pathParts[i];
-
-      // Handle array indices
+      // Handle array path segments
       if (part.includes("[") && part.includes("]")) {
         const arrName = part.substring(0, part.indexOf("["));
         const index = parseInt(
-          part.substring(part.indexOf("[") + 1, part.indexOf("]")),
+          part.substring(part.indexOf("[") + 1, part.indexOf("]"))
         );
-
-        if (!current[arrName]) current[arrName] = [];
-        parent = current;
-        current = current[arrName];
+        if (!current[arrName] || !Array.isArray(current[arrName])) {
+          current[arrName] = [];
+        }
+        // Ensure the array element exists as object
+        if (!current[arrName][index] || typeof current[arrName][index] !== "object") {
+          current[arrName][index] = {};
+        }
+        parent = current[arrName];
+        current = current[arrName][index];
         lastKey = index;
       } else {
-        if (!current[part]) current[part] = {};
+        // Handle object path segments
+        if (!current[part] || typeof current[part] !== "object") {
+          current[part] = {};
+        }
         parent = current;
         current = current[part];
         lastKey = part;
@@ -650,23 +657,45 @@ export const applyAutoCorrections = (config, issues) => {
         break;
 
       case "convert":
-        if (finalProp.includes("[") && finalProp.includes("]")) {
-          const arrName = finalProp.substring(0, finalProp.indexOf("["));
-          const index = parseInt(
-            finalProp.substring(
-              finalProp.indexOf("[") + 1,
-              finalProp.indexOf("]"),
-            ),
-          );
-
-          if (current[arrName] && Array.isArray(current[arrName])) {
-            // Convert to string
-            current[arrName][index] = String(current[arrName][index]);
-          }
-        } else if (current[finalProp] !== undefined) {
-          // Convert to string
-          current[finalProp] = String(current[finalProp]);
+        // More robust path walker for mixed object/array paths
+        function parsePath(path) {
+          // Handles paths like 'args[1]', 'foo.bar[2]', etc.
+          const parts = [];
+          // Split on dots, but also handle cases where there are no dots (e.g., 'args[1]')
+          path.split('.').forEach(seg => {
+            let m;
+            // Extract all [n] after the property
+            const re = /([a-zA-Z0-9_$]+)|\[(\d+)\]/g;
+            while ((m = re.exec(seg)) !== null) {
+              if (m[1] !== undefined) {
+                parts.push(m[1]);
+              } else if (m[2] !== undefined) {
+                parts.push(Number(m[2]));
+              }
+            }
+          });
+          return parts;
         }
+        function setByPath(obj, path, val) {
+          const parts = parsePath(path);
+          let curr = obj;
+          for (let i = 0; i < parts.length - 1; i++) {
+            curr = curr[parts[i]];
+          }
+          curr[parts[parts.length - 1]] = val;
+        }
+        function getByPath(obj, path) {
+          const parts = parsePath(path);
+          let curr = obj;
+          for (let i = 0; i < parts.length; i++) {
+            curr = curr[parts[i]];
+          }
+          return curr;
+        }
+        const valueToSet = typeof issue.suggestion.value !== "undefined"
+          ? String(issue.suggestion.value)
+          : String(getByPath(corrected, issue.path));
+        setByPath(corrected, issue.path, String(valueToSet));
         break;
     }
   });
