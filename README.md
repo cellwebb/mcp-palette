@@ -26,11 +26,15 @@ MCP Palette is a modern, user-friendly desktop application for managing Model Co
 
 ## 🖥️ Installation & Usage
 
+For installation instructions, see the [Installation Guide](docs/INSTALLATION.md).
+
 **For End Users:**
 
 1. Go to the [Releases page](https://github.com/cellwebb/mcp-palette/releases) and download the installer or binary for your operating system (e.g., `.dmg` for Mac, `.exe` for Windows).
 2. Run the installer and follow the prompts to install MCP Palette on your computer.
 3. Launch MCP Palette from your Applications folder (Mac) or Start Menu/Desktop (Windows).
+
+For usage details and feature explanations, see the [Usage Guide](docs/USAGE.md).
 
 **For Developers/Contributors:**
 
@@ -55,6 +59,13 @@ MCP Palette is a modern, user-friendly desktop application for managing Model Co
 
 **Note:**
 - If you need a Windows or Linux installer and are on a Mac, use GitHub Actions or a Windows/Linux machine to build for those platforms. See below for cross-platform automation.
+
+## 📖 Documentation
+
+- [Installation Guide](docs/INSTALLATION.md)
+- [Usage Guide](docs/USAGE.md)
+- [Contributing Guide](docs/CONTRIBUTING.md)
+- [Release Guide](docs/RELEASING.md)
 
 ## 🏗️ Development
 
@@ -113,6 +124,10 @@ npm test:validation # Validation tests
 - All necessary dev dependencies (`jest`, `@testing-library/react`, `babel-jest`, etc.) are included in `package.json`.
 - File and style mocks are provided in `__mocks__/` for robust component testing.
 - Babel is used for modern JS/React syntax support (see `.babelrc`).
+
+For contributing, see the [Contributing Guide](docs/CONTRIBUTING.md).
+
+For release instructions, see the [Release Guide](docs/RELEASING.md).
 
 ## 🛠️ Babel
 
