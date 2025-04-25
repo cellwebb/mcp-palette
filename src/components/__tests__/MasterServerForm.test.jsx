@@ -195,15 +195,32 @@ describe("MasterServerForm", () => {
     // Add an env var with invalid name
     const envNameInput = screen.getByPlaceholderText("Variable name");
     const envValueInput = screen.getByPlaceholderText("Value");
-    const addButton = screen.getByText("Add");
+    // There are multiple "Add" buttons (args and env). Select the one for env vars.
+    const addButtons = screen.getAllByText("Add");
+    // The env var "Add" button comes after the env var input fields.
+    // Find the button whose parent contains the env name input.
+    const envAddButton = addButtons.find((btn) =>
+      btn.parentElement && btn.parentElement.contains(envNameInput),
+    );
+    expect(envAddButton).toBeDefined();
 
     fireEvent.change(envNameInput, { target: { value: "123-invalid" } });
     fireEvent.change(envValueInput, { target: { value: "test" } });
+    fireEvent.click(envAddButton);
 
-    // Should show warning message
+    // eslint-disable-next-line no-console
+    console.log(document.body.innerHTML);
+
+    // Should show warning message (use flexible matcher for split text)
     await waitFor(() => {
       expect(
-        screen.getByText(/Warning: Environment variable name should contain/),
+        screen.getByText(
+          (content) =>
+            content &&
+            content.includes("Warning") &&
+            content.includes("Environment variable name") &&
+            content.includes("should contain"),
+        ),
       ).toBeInTheDocument();
     });
 
@@ -278,11 +295,18 @@ describe("MasterServerForm", () => {
     // Add a new env var
     const envNameInput = screen.getByPlaceholderText("Variable name");
     const envValueInput = screen.getByPlaceholderText("Value");
-    const addButton = screen.getAllByText("Add")[1]; // Second "Add" button is for env vars
+    // There are multiple "Add" buttons (args and env). Select the one for env vars.
+    const addButtons = screen.getAllByText("Add");
+    // The env var "Add" button comes after the env var input fields.
+    // Find the button whose parent contains the env name input.
+    const envAddButton = addButtons.find((btn) =>
+      btn.parentElement && btn.parentElement.contains(envNameInput),
+    );
+    expect(envAddButton).toBeDefined();
 
     fireEvent.change(envNameInput, { target: { value: "NEW_VAR" } });
     fireEvent.change(envValueInput, { target: { value: "new-value" } });
-    fireEvent.click(addButton);
+    fireEvent.click(envAddButton);
 
     // Should add the new env var to the list
     expect(screen.getByText("NEW_VAR")).toBeInTheDocument();
@@ -348,14 +372,16 @@ describe("MasterServerForm", () => {
 
     // Should call onSave with updated form data
     expect(mockSave).toHaveBeenCalledTimes(1);
-    expect(mockSave).toHaveBeenCalledWith(
+    const callArgs = mockSave.mock.calls[0];
+    expect(callArgs.length).toBeGreaterThanOrEqual(2);
+    expect(callArgs[1]).toEqual(
       expect.objectContaining({
         name: "updated-name",
         command: "python",
         args: ["-m", "server"],
         env: { PORT: "8000", DEBUG: "true" },
         originalId: "test-server",
-      }),
+      })
     );
   });
 
@@ -393,7 +419,7 @@ describe("MasterServerForm", () => {
     );
 
     // Click the view JSON button
-    fireEvent.click(screen.getByText("View JSON"));
+    fireEvent.click(screen.getByText("Preview JSON"));
 
     // Should call onViewJson
     expect(mockViewJson).toHaveBeenCalledTimes(1);
