@@ -1,5 +1,6 @@
 import { findProfileByIdOrName, getServerDisplayName, generateFinalProfileConfig, convertFinalConfigToInternal, calculateOverrides, applyOverrides } from '../profileUtils';
 
+
 describe('profileUtils', () => {
   describe('findProfileByIdOrName', () => {
     const uuid = '00000000-0000-4000-8000-000000000000';
@@ -24,7 +25,7 @@ describe('profileUtils', () => {
     test('returns null when not found', () => {
       expect(findProfileByIdOrName(profiles, 'Charlie')).toBeNull();
     });
-
+    
     test('returns null for valid UUID not in list', () => {
       const missingUuid = '22222222-2222-4222-8222-222222222222';
       expect(findProfileByIdOrName(profiles, missingUuid)).toBeNull();
