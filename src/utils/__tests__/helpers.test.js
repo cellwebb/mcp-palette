@@ -100,6 +100,11 @@ describe('helpers', () => {
     test('returns false for empty args and env', () => {
       expect(hasOverrides({ args: [], env: {} })).toBe(false);
     });
+
+    test('returns false for empty name or command strings', () => {
+      expect(hasOverrides({ name: '' })).toBe(false);
+      expect(hasOverrides({ command: '' })).toBe(false);
+    });
   });
 
   describe('filterInternalFields', () => {
@@ -109,6 +114,16 @@ describe('helpers', () => {
 
     test('removes id field', () => {
       const config = { id: 1, name: 'n' };
+      expect(filterInternalFields(config)).toEqual({ name: 'n' });
+    });
+
+    test('handles config without id field (no changes)', () => {
+      const config = { name: 'server', command: 'run' };
+      expect(filterInternalFields(config)).toEqual({ name: 'server', command: 'run' });
+    });
+
+    test('removes id when id is null', () => {
+      const config = { id: null, name: 'n' };
       expect(filterInternalFields(config)).toEqual({ name: 'n' });
     });
   });
@@ -144,6 +159,19 @@ describe('helpers', () => {
       const master = { id: '1', name: 'master', command: 'run', args: [] };
       const profile = { enabled: true }; // No overrides property
       const expected = { name: 'master', command: 'run', args: [], enabled: true };
+      expect(getEffectiveConfig(master, profile)).toEqual(expected);
+    });
+
+    test('handles profileServer with enabled false and no overrides', () => {
+      const master = { id: '1', name: 'm', command: 'cmd', args: [], env: { X: 'x' } };
+      const expected = { name: 'm', command: 'cmd', args: [], env: { X: 'x' }, enabled: false };
+      expect(getEffectiveConfig(master, { enabled: false })).toEqual(expected);
+    });
+
+    test('applies partial overrides correctly', () => {
+      const master = { id: '1', name: 'master', command: 'run', args: [1, 2], env: { A: '1', C: '3' } };
+      const profile = { enabled: true, overrides: { command: 'exec', args: [], env: { B: '2' } } };
+      const expected = { name: 'master', command: 'exec', args: [], env: { A: '1', C: '3', B: '2' }, enabled: true };
       expect(getEffectiveConfig(master, profile)).toEqual(expected);
     });
   });
