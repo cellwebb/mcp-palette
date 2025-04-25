@@ -70,6 +70,19 @@ describe('profileUtils', () => {
       });
       expect(result.mcpServers).not.toHaveProperty('Server2');
     });
+
+    test('fallback to originalId when name missing, skip missing masters and omit empty env', () => {
+      const masterServers = {
+        s1: { id: 's1', originalId: 'orig1', command: 'c', args: ['a'], env: {} },
+        s2: { id: 's2', name: 'Server2', command: 'c2', args: ['b'], env: { E: '1' } },
+      };
+      const profile = { servers: { s1: { enabled: true }, s3: { enabled: true } } };
+      const result = generateFinalProfileConfig(profile, masterServers);
+      expect(result.mcpServers).toHaveProperty('orig1');
+      expect(result.mcpServers.orig1).toEqual({ command: 'c', args: ['a'] });
+      expect(result.mcpServers).not.toHaveProperty('s3');
+      expect(result.mcpServers.orig1).not.toHaveProperty('env');
+    });
   });
 
   describe('convertFinalConfigToInternal', () => {
@@ -88,6 +101,30 @@ describe('profileUtils', () => {
       expect(updated.name).toBe('P');
       expect(updated.servers.mid.enabled).toBe(true);
       expect(updated.servers.mid.overrides).toEqual({ env: { A: '2' } });
+    });
+
+    test('handles legacy format and disables missing servers', () => {
+      const masterServers = {
+        mid: { id: 'mid', name: 'M', command: 'orig', args: ['o'], env: { A: '1' } },
+        sid: { id: 'sid', name: 'S', command: 'orig2', args: [], env: {} },
+      };
+      const currentProfile = {
+        id: 'pid',
+        name: 'P',
+        servers: {
+          mid: { enabled: false, overrides: {} },
+          sid: { enabled: true, overrides: {} },
+        },
+      };
+      const finalConfig = {
+        servers: {
+          mid: { command: 'orig', args: ['o'], env: { A: '2' } },
+        },
+      };
+      const updated = convertFinalConfigToInternal(finalConfig, currentProfile, masterServers);
+      expect(updated.servers.mid.enabled).toBe(true);
+      expect(updated.servers.mid.overrides).toEqual({ env: { A: '2' } });
+      expect(updated.servers.sid.enabled).toBe(false);
     });
   });
 
