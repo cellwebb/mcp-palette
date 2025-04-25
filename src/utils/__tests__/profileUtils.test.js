@@ -83,6 +83,16 @@ describe('profileUtils', () => {
       expect(result.mcpServers).not.toHaveProperty('s3');
       expect(result.mcpServers.orig1).not.toHaveProperty('env');
     });
+
+    test('fallback to serverId when name and originalId missing', () => {
+      const masterServers = {
+        s1: { id: 's1', command: 'cmd', args: [], env: {} },
+      };
+      const profile = { servers: { s1: { enabled: true } } };
+      const result = generateFinalProfileConfig(profile, masterServers);
+      expect(result.mcpServers).toHaveProperty('s1');
+      expect(result.mcpServers.s1).toEqual({ command: 'cmd', args: [] });
+    });
   });
 
   describe('convertFinalConfigToInternal', () => {
@@ -125,6 +135,24 @@ describe('profileUtils', () => {
       expect(updated.servers.mid.enabled).toBe(true);
       expect(updated.servers.mid.overrides).toEqual({ env: { A: '2' } });
       expect(updated.servers.sid.enabled).toBe(false);
+    });
+
+    test('empty finalConfig disables all existing servers', () => {
+      const masterServers = {
+        a: { id: 'a', name: 'A', command: 'c', args: ['o'], env: {} },
+        b: { id: 'b', name: 'B', command: 'd', args: ['n'], env: {} },
+      };
+      const currentProfile = {
+        id: 'pid',
+        name: 'P',
+        servers: {
+          a: { enabled: true, overrides: {} },
+          b: { enabled: true, overrides: {} },
+        },
+      };
+      const updated = convertFinalConfigToInternal({}, currentProfile, masterServers);
+      expect(updated.servers.a.enabled).toBe(false);
+      expect(updated.servers.b.enabled).toBe(false);
     });
   });
 
