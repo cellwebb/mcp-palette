@@ -105,6 +105,15 @@ describe('helpers', () => {
       expect(hasOverrides({ name: '' })).toBe(false);
       expect(hasOverrides({ command: '' })).toBe(false);
     });
+
+    test('returns false for non-object overrides', () => {
+      expect(hasOverrides('string')).toBe(false);
+      expect(hasOverrides(123)).toBe(false);
+    });
+
+    test('returns false for overrides with unrelated properties', () => {
+      expect(hasOverrides({ foo: 'bar' })).toBe(false);
+    });
   });
 
   describe('filterInternalFields', () => {
@@ -125,6 +134,14 @@ describe('helpers', () => {
     test('removes id when id is null', () => {
       const config = { id: null, name: 'n' };
       expect(filterInternalFields(config)).toEqual({ name: 'n' });
+    });
+
+    test('does not mutate original config and preserves nested objects', () => {
+      const config = { id: 3, name: 'n', nested: { x: 1 } };
+      const original = JSON.parse(JSON.stringify(config));
+      const result = filterInternalFields(config);
+      expect(result).toEqual({ name: 'n', nested: { x: 1 } });
+      expect(config).toEqual(original);
     });
   });
 
@@ -172,6 +189,34 @@ describe('helpers', () => {
       const master = { id: '1', name: 'master', command: 'run', args: [1, 2], env: { A: '1', C: '3' } };
       const profile = { enabled: true, overrides: { command: 'exec', args: [], env: { B: '2' } } };
       const expected = { name: 'master', command: 'exec', args: [], env: { A: '1', C: '3', B: '2' }, enabled: true };
+      expect(getEffectiveConfig(master, profile)).toEqual(expected);
+    });
+
+    test('handles explicit null overrides', () => {
+      const master = { id: '1', name: 'orig', command: 'cmd', args: [1], env: { A: 'a' } };
+      const profile = { enabled: true, overrides: null };
+      const expected = { name: 'orig', command: 'cmd', args: [1], env: { A: 'a' }, enabled: true };
+      expect(getEffectiveConfig(master, profile)).toEqual(expected);
+    });
+
+    test('ignores empty overrides object', () => {
+      const master = { id: '1', name: 'orig', command: 'cmd', args: [1], env: { A: 'a' } };
+      const profile = { enabled: true, overrides: {} };
+      const expected = { name: 'orig', command: 'cmd', args: [1], env: { A: 'a' }, enabled: true };
+      expect(getEffectiveConfig(master, profile)).toEqual(expected);
+    });
+
+    test('skips empty name and command overrides', () => {
+      const master = { id: '1', name: 'orig', command: 'cmd', args: [1], env: { A: 'a' } };
+      const profile = { enabled: true, overrides: { name: '', command: '' } };
+      const expected = { name: 'orig', command: 'cmd', args: [1], env: { A: 'a' }, enabled: true };
+      expect(getEffectiveConfig(master, profile)).toEqual(expected);
+    });
+
+    test('overrides args to empty array', () => {
+      const master = { id: '1', name: 'orig', command: 'cmd', args: [1, 2], env: { A: 'a' } };
+      const profile = { enabled: true, overrides: { args: [] } };
+      const expected = { name: 'orig', command: 'cmd', args: [], env: { A: 'a' }, enabled: true };
       expect(getEffectiveConfig(master, profile)).toEqual(expected);
     });
   });
