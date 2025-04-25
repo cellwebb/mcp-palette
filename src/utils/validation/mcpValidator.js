@@ -254,7 +254,7 @@ export const validateMcpServerConfig = (serverConfig, serverName) => {
  * @param {Array} resources - Array of resource definition objects
  * @param {Object} result - Validation result to append to
  */
-const validateResourceDefinitions = (resources, result) => {
+export const validateResourceDefinitions = (resources, result) => {
   if (!Array.isArray(resources)) {
     result.errors.push({
       path: "resources",
@@ -350,8 +350,8 @@ const validateResourceDefinitions = (resources, result) => {
  * @param {Object} transport - Transport configuration
  * @param {Object} result - Validation result to append to
  */
-const validateTransportConfig = (transport, result) => {
-  if (typeof transport !== "object" || Array.isArray(transport)) {
+export const validateTransportConfig = (transport, result) => {
+  if (!transport || typeof transport !== "object" || Array.isArray(transport)) {
     result.errors.push({
       path: "transport",
       message: "Transport must be an object",
@@ -438,7 +438,7 @@ const validateTransportConfig = (transport, result) => {
  * @param {Object} serverConfig - Server configuration
  * @param {Object} result - Validation result to append to
  */
-const validateInternalProperties = (serverConfig, result) => {
+export const validateInternalProperties = (serverConfig, result) => {
   // originalId property (optional for internal use)
   if (
     serverConfig.originalId !== undefined &&

@@ -8,6 +8,12 @@ describe('helpers', () => {
       expect(deepMerge(a, b)).toEqual({ x: 1, y: { z: 2, w: 3 }, u: 4 });
     });
 
+    test('merges multiple nested levels', () => {
+      const a = { a: { b: { c: 1 } } };
+      const b = { a: { b: { d: 2 } } };
+      expect(deepMerge(a, b)).toEqual({ a: { b: { c: 1, d: 2 } } });
+    });
+
     test('returns source when target or source is not object', () => {
       expect(deepMerge(null, 5)).toBe(5);
       expect(deepMerge({ a: 1 }, 'string')).toBe('string');
@@ -34,6 +40,10 @@ describe('helpers', () => {
 
     test('detects env override', () => {
       expect(hasOverrides({ env: { A: 'B' } })).toBe(true);
+    });
+
+    test('returns false for empty args and env', () => {
+      expect(hasOverrides({ args: [], env: {} })).toBe(false);
     });
   });
 
@@ -65,6 +75,12 @@ describe('helpers', () => {
       const result = getEffectiveConfig(master, profile);
       expect(result).toMatchObject({ name: 'new', command: 'nc', args: [2], env: { A: '1', B: '2' }, enabled: true });
       expect(result.id).toBeUndefined();
+    });
+
+    test('returns default enabled config when no overrides', () => {
+      const master = { id: 2, env: { A: '1' }, name: 'n', command: 'c', args: [1] };
+      const profile = { enabled: true };
+      expect(getEffectiveConfig(master, profile)).toEqual({ name: 'n', command: 'c', args: [1], env: { A: '1' }, enabled: true });
     });
   });
 
