@@ -1,16 +1,26 @@
 // Helper function to deep merge objects
 export function deepMerge(target, source) {
-  const result = { ...target };
-
-  if (typeof target !== "object" || typeof source !== "object") {
+  // If source is not an object (or null), return source directly
+  if (typeof source !== "object" || source === null) {
     return source;
   }
 
+  // Start with a shallow copy of target, or an empty object if target isn't an object/null
+  const result = (typeof target === 'object' && target !== null) ? { ...target } : {};
+
   Object.keys(source).forEach((key) => {
-    if (source[key] instanceof Object && key in target) {
-      result[key] = deepMerge(target[key], source[key]);
+    const sourceValue = source[key];
+    const targetValue = result[key]; // Check against the current result/target value
+
+    // If both sourceValue and targetValue are non-null, non-array objects, recurse
+    if (
+      sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue) &&
+      targetValue && typeof targetValue === 'object' && !Array.isArray(targetValue)
+    ) {
+      result[key] = deepMerge(targetValue, sourceValue);
     } else {
-      result[key] = source[key];
+      // Otherwise, source value replaces target value (handles primitives, arrays, nulls, etc.)
+      result[key] = sourceValue;
     }
   });
 
@@ -65,29 +75,4 @@ export function getEffectiveConfig(masterServer, profileServer) {
   delete result.id;
 
   return result;
-}
-
-/**
- * Generates a UUID v4 string
- * This is a lightweight implementation that doesn't require additional dependencies
- * @returns {string} A UUID v4 formatted string
- */
-export function generateUUID() {
-  // Implementation based on RFC4122 version 4
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-/**
- * Checks if a string is a valid UUID v4
- * @param {string} uuid - The string to validate as a UUID
- * @returns {boolean} True if the string is a valid UUID v4
- */
-export function isValidUUID(uuid) {
-  const regex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return regex.test(uuid);
 }

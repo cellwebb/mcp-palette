@@ -269,9 +269,11 @@ const JsonEditor = ({
         <div className="json-editor-validation-errors">
           <h3>MCP Compliance Issues:</h3>
           <ul>
-            {validationStatus.errors.map((err, index) => (
-              <li key={index}>{err}</li>
-            ))}
+            {validationStatus.errors.map((err, index) => { 
+              // Check if err is an object with a message property
+              const errorMessage = typeof err === 'object' && err !== null && err.message ? err.message : String(err);
+              return <li key={index}>{errorMessage}</li>;
+             })}
           </ul>
         </div>
       )}

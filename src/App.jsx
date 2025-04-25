@@ -17,7 +17,7 @@ import {
   formatSingleServerConfig,
   formatServerListToMcpJson,
 } from "./utils/validation/mcpValidator";
-import { generateUUID, isValidUUID } from "./utils/helpers";
+import { v4 as uuidv4 } from 'uuid';
 import "./styles/index.css";
 import "./styles/validation.css";
 import "./styles/overrides.css";
@@ -104,12 +104,9 @@ const App = () => {
       return;
     }
 
-    // Generate a client-side UUID rather than asking the server
-    const uuid = generateUUID();
-
     // Create new profile object
     const newProfile = {
-      id: uuid,
+      id: uuidv4(),
       name: profileName.trim(),
       servers: {},
     };
@@ -830,21 +827,24 @@ const App = () => {
                   ) : (
                     <JsonEditor
                       json={JSON.stringify(
-                        generateFinalProfileConfig(
-                          currentProfile,
-                          serverMasterList,
-                        ),
+                        (() => {
+                          try {
+                            const cfg = generateFinalProfileConfig(
+                              currentProfile,
+                              serverMasterList,
+                            );
+                            return cfg || { mcpServers: {} };
+                          } catch (e) {
+                            console.error('Error generating profile JSON:', e);
+                            return { mcpServers: {} };
+                          }
+                        })(),
                         null,
                         2,
                       )}
                       readOnly={true}
                       isProfileView={true}
                       profileName={activeProfile}
-                      onViewServerJson={(serverId) => {
-                        setSelectedServerMaster(serverId);
-                        setViewingServerJson(true);
-                      }}
-                      onRestoreDefaults={handleRestoreServerDefaults}
                     />
                   )}
                 </>

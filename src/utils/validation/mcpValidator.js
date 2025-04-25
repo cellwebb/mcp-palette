@@ -16,94 +16,118 @@ import {
  */
 export const validateMcpConfig = (config) => {
   const result = {
-    valid: false,
+    valid: false, // Start assuming invalid
     errors: [],
     warnings: [],
   };
+  let serverCount = 0;
 
   // Check if config is an object
-  if (!config || typeof config !== "object") {
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
     result.errors.push({
       path: "",
-      message: "Invalid configuration: Must be a JSON object",
+      message: "Invalid configuration: Must be a non-array JSON object",
     });
+    // No need to set valid = false, it defaults to false
     return result;
   }
 
-  // For profiles format (mcpServers property)
+  const processServer = (serverConfig, serverKey, pathPrefix) => {
+    const serverValidation = validateMcpServerConfig(serverConfig, serverKey);
+    serverCount++;
+
+    serverValidation.errors.forEach((error) => {
+      result.errors.push({
+        path: `${pathPrefix}${serverKey}${error.path ? "." + error.path : ""}`,
+        message: error.message,
+        suggestion: error.suggestion,
+      });
+    });
+
+    serverValidation.warnings.forEach((warning) => {
+      result.warnings.push({
+        path: `${pathPrefix}${serverKey}${warning.path ? "." + warning.path : ""}`,
+        message: warning.message,
+        suggestion: warning.suggestion,
+      });
+    });
+  };
+
+  // Preferred format: mcpServers property
   if ("mcpServers" in config) {
     if (
+      config.mcpServers === null ||
       typeof config.mcpServers !== "object" ||
       Array.isArray(config.mcpServers)
     ) {
       result.errors.push({
         path: "mcpServers",
-        message: "mcpServers property must be an object",
-        suggestion: {
-          action: "replace",
-          value: {},
-          description: "Replace with an empty object",
-        },
+        message: "mcpServers property must be a non-null object",
+        suggestion: { action: "replace", value: {}, description: "Replace with an empty object" },
       });
     } else {
       // Validate each server in mcpServers
-      Object.entries(config.mcpServers).forEach(
-        ([serverName, serverConfig]) => {
-          const serverValidation = validateMcpServerConfig(
-            serverConfig,
-            serverName,
-          );
-
-          // Add server errors with prefixed path
-          serverValidation.errors.forEach((error) => {
-            result.errors.push({
-              path: `mcpServers.${serverName}${error.path ? "." + error.path : ""}`,
-              message: error.message,
-              suggestion: error.suggestion,
-            });
-          });
-
-          // Add server warnings with prefixed path
-          serverValidation.warnings.forEach((warning) => {
-            result.warnings.push({
-              path: `mcpServers.${serverName}${warning.path ? "." + warning.path : ""}`,
-              message: warning.message,
-              suggestion: warning.suggestion,
-            });
-          });
-        },
-      );
+      Object.entries(config.mcpServers).forEach(([serverName, serverConfig]) => {
+        processServer(serverConfig, serverName, "mcpServers.");
+      });
     }
   }
-  // For server master list format
-  else {
-    Object.entries(config).forEach(([serverId, serverConfig]) => {
-      const serverValidation = validateMcpServerConfig(
-        serverConfig,
-        serverConfig.name || serverId,
-      );
-
-      // Add server errors with prefixed path
-      serverValidation.errors.forEach((error) => {
-        result.errors.push({
-          path: `${serverId}${error.path ? "." + error.path : ""}`,
-          message: error.message,
-          suggestion: error.suggestion,
-        });
-      });
-
-      // Add server warnings with prefixed path
-      serverValidation.warnings.forEach((warning) => {
-        result.warnings.push({
-          path: `${serverId}${warning.path ? "." + warning.path : ""}`,
-          message: warning.message,
-          suggestion: warning.suggestion,
-        });
-      });
+  // Legacy format: servers property
+  else if ("servers" in config) {
+    result.warnings.push({
+      path: "",
+      message: "Configuration uses deprecated 'servers' key. Use 'mcpServers' instead.",
     });
+
+    if (
+      config.servers === null ||
+      typeof config.servers !== "object" ||
+      Array.isArray(config.servers)
+    ) {
+      result.errors.push({
+        path: "servers",
+        message: "servers property must be a non-null object",
+        suggestion: { action: "replace", value: {}, description: "Replace with an empty object" },
+      });
+    } else {
+      // Validate each server in servers
+      Object.entries(config.servers).forEach(([serverName, serverConfig]) => {
+        processServer(serverConfig, serverName, "servers.");
+      });
+    }
+  }
+  // Neither mcpServers nor servers found
+  else {
+    // Check if it MIGHT be the very old format (top-level keys are servers)
+    // Only treat as legacy if it's not completely empty
+    const keys = Object.keys(config);
+    if (keys.length > 0) {
+       result.warnings.push({
+        path: "",
+        message: "Configuration uses deprecated top-level server definitions. Use 'mcpServers' object instead.",
+      });
+      keys.forEach((serverId) => {
+        processServer(config[serverId], serverId, ""); // No prefix for oldest format
+      });
+    } else {
+      // Config is just an empty object {}
+       result.errors.push({
+          path: "mcpServers", // Expect mcpServers primarily
+          message: "Configuration is empty. Must contain server definitions under 'mcpServers' key.",
+        });
+    }
+
   }
 
-  // Set valid flag based on errors count
+  // Final check: Ensure at least one server was defined if no other errors occurred yet
+  if (result.errors.length === 0 && serverCount === 0) {
+     result.errors.push({
+        path: "mcpServers", // Default path for this error
+        message: "Configuration must contain at least one server definition.",
+      });
+  }
+
+  // Set final valid flag based ONLY on errors count
   result.valid = result.errors.length === 0;
 
   return result;
@@ -550,6 +574,11 @@ export const formatServerListToMcpJson = (serverList) => {
   const mcpServers = {};
 
   Object.entries(serverList).forEach(([serverId, server]) => {
+    // Skip null or undefined server entries
+    if (!server) {
+      return; // Continue to next iteration
+    }
+
     // Use name as key, fallback to originalId or serverId
     const serverName = server.name || server.originalId || serverId;
 
@@ -570,133 +599,115 @@ export const applyAutoCorrections = (config, issues) => {
   // Create a deep copy of the configuration
   const corrected = JSON.parse(JSON.stringify(config));
 
-  // Apply corrections for each issue that has a suggestion
-  issues.forEach((issue) => {
-    if (!issue.suggestion) return;
+  // Helper functions defined within the scope of applyAutoCorrections
+  function parsePath(path) {
+    return path.split(/\.|(?=\[\d+\])/).map(part =>
+      part.startsWith('[') ? parseInt(part.slice(1, -1), 10) : part
+    );
+  }
 
-    // Parse the path to navigate the object
-    const pathParts = issue.path.split(".");
+  function setByPath(obj, path, value) {
+    const parts = parsePath(path);
+    let curr = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      const nextPart = parts[i + 1];
+      // Create object/array path if it doesn't exist
+      if (curr[part] === undefined || curr[part] === null) {
+        curr[part] = typeof nextPart === 'number' ? [] : {};
+      }
+      curr = curr[part];
+    }
+    curr[parts[parts.length - 1]] = value;
+  }
 
-    // Navigate to the parent object
-    let current = corrected;
-    let parent = null;
-    let lastKey = null;
+  function getByPath(obj, path) {
+    const parts = parsePath(path);
+    let curr = obj;
+    for (let i = 0; i < parts.length; i++) {
+      if (curr === undefined || curr === null) return undefined; // Path doesn't exist
+      curr = curr[parts[i]];
+    }
+    return curr;
+  }
 
-    for (let i = 0; i < pathParts.length - 1; i++) {
-      const part = pathParts[i];
-      // Handle array path segments
-      if (part.includes("[") && part.includes("]")) {
-        const arrName = part.substring(0, part.indexOf("["));
-        const index = parseInt(
-          part.substring(part.indexOf("[") + 1, part.indexOf("]"))
-        );
-        if (!current[arrName] || !Array.isArray(current[arrName])) {
-          current[arrName] = [];
-        }
-        // Ensure the array element exists as object
-        if (!current[arrName][index] || typeof current[arrName][index] !== "object") {
-          current[arrName][index] = {};
-        }
-        parent = current[arrName];
-        current = current[arrName][index];
-        lastKey = index;
+  function removeByPath(obj, path) {
+    const parts = parsePath(path);
+    let curr = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (curr === undefined || curr === null) return; // Path doesn't exist
+      curr = curr[parts[i]];
+    }
+    if (curr !== undefined && curr !== null) {
+      const lastPart = parts[parts.length - 1];
+      if (Array.isArray(curr) && typeof lastPart === 'number') {
+        curr.splice(lastPart, 1);
       } else {
-        // Handle object path segments
-        if (!current[part] || typeof current[part] !== "object") {
-          current[part] = {};
-        }
-        parent = current;
-        current = current[part];
-        lastKey = part;
+        delete curr[lastPart];
       }
     }
+  }
 
-    // Get the final property name
-    const finalProp = pathParts[pathParts.length - 1];
+  // Apply corrections for each issue that has a suggestion
+  issues.forEach((issue) => {
+    if (issue.suggestion && issue.suggestion.action) {
+      try {
+        let valueToSet;
+        switch (issue.suggestion.action) {
+          case "add":
+          case "replace":
+            valueToSet = issue.suggestion.value;
+            setByPath(corrected, issue.path, valueToSet);
+            break;
+          case "remove":
+            removeByPath(corrected, issue.path);
+            break;
+          case "convert": {
+            const currentValue = getByPath(corrected, issue.path);
+            const valueToConvert = typeof issue.suggestion.value !== 'undefined'
+              ? issue.suggestion.value
+              : currentValue;
 
-    // Apply the correction based on the suggestion type
-    switch (issue.suggestion.action) {
-      case "add":
-      case "replace":
-        if (finalProp.includes("[") && finalProp.includes("]")) {
-          const arrName = finalProp.substring(0, finalProp.indexOf("["));
-          const index = parseInt(
-            finalProp.substring(
-              finalProp.indexOf("[") + 1,
-              finalProp.indexOf("]"),
-            ),
-          );
-
-          if (!current[arrName]) current[arrName] = [];
-          if (typeof issue.suggestion.value !== "undefined") {
-            current[arrName][index] = issue.suggestion.value;
-          }
-        } else {
-          if (typeof issue.suggestion.value !== "undefined") {
-            current[finalProp] = issue.suggestion.value;
-          }
-        }
-        break;
-
-      case "remove":
-        if (finalProp.includes("[") && finalProp.includes("]")) {
-          const arrName = finalProp.substring(0, finalProp.indexOf("["));
-          const index = parseInt(
-            finalProp.substring(
-              finalProp.indexOf("[") + 1,
-              finalProp.indexOf("]"),
-            ),
-          );
-
-          if (current[arrName] && Array.isArray(current[arrName])) {
-            current[arrName].splice(index, 1);
-          }
-        } else {
-          delete current[finalProp];
-        }
-        break;
-
-      case "convert":
-        // More robust path walker for mixed object/array paths
-        function parsePath(path) {
-          // Handles paths like 'args[1]', 'foo.bar[2]', etc.
-          const parts = [];
-          // Split on dots, but also handle cases where there are no dots (e.g., 'args[1]')
-          path.split('.').forEach(seg => {
-            let m;
-            // Extract all [n] after the property
-            const re = /([a-zA-Z0-9_$]+)|\[(\d+)\]/g;
-            while ((m = re.exec(seg)) !== null) {
-              if (m[1] !== undefined) {
-                parts.push(m[1]);
-              } else if (m[2] !== undefined) {
-                parts.push(Number(m[2]));
+            if (issue.suggestion.type === "string") {
+              valueToSet = String(valueToConvert);
+            } else if (issue.suggestion.type === "number") {
+              valueToSet = Number(valueToConvert);
+              if (isNaN(valueToSet)) {
+                console.warn(`Could not convert '${valueToConvert}' to number at path ${issue.path}`);
+                valueToSet = valueToConvert; // Keep original on failed conversion
               }
+            } else if (issue.suggestion.type === "boolean") {
+              if (typeof valueToConvert === 'string') {
+                const lowerCaseValue = valueToConvert.toLowerCase();
+                if (lowerCaseValue === 'true') valueToSet = true;
+                else if (lowerCaseValue === 'false') valueToSet = false;
+                else valueToSet = Boolean(valueToConvert);
+              } else {
+                 valueToSet = Boolean(valueToConvert);
+              }
+            } else {
+              console.warn(`Unknown conversion type '${issue.suggestion.type}' at path ${issue.path}. Defaulting to string.`);
+              valueToSet = String(valueToConvert);
             }
-          });
-          return parts;
-        }
-        function setByPath(obj, path, val) {
-          const parts = parsePath(path);
-          let curr = obj;
-          for (let i = 0; i < parts.length - 1; i++) {
-            curr = curr[parts[i]];
+            setByPath(corrected, issue.path, valueToSet);
+            break;
           }
-          curr[parts[parts.length - 1]] = val;
-        }
-        function getByPath(obj, path) {
-          const parts = parsePath(path);
-          let curr = obj;
-          for (let i = 0; i < parts.length; i++) {
-            curr = curr[parts[i]];
+          // Legacy action - keep for compatibility but warn
+          case "ConvertToString": {
+            console.warn(`Deprecated suggestion action 'ConvertToString' used for path ${issue.path}. Use 'convert' with type: 'string'.`);
+            const currentValue = getByPath(corrected, issue.path);
+            const strValue = typeof issue.suggestion.value !== "undefined"
+              ? String(issue.suggestion.value)
+              : String(currentValue);
+            setByPath(corrected, issue.path, strValue);
+            break;
           }
-          return curr;
+          default:
+            console.warn(`Unknown suggestion action '${issue.suggestion.action}' for path ${issue.path}`);
         }
-        const valueToSet = typeof issue.suggestion.value !== "undefined"
-          ? String(issue.suggestion.value)
-          : String(getByPath(corrected, issue.path));
-        setByPath(corrected, issue.path, String(valueToSet));
-        break;
+      } catch (error) {
+        console.error(`Error applying correction for path ${issue.path}:`, error);
+      }
     }
   });
 

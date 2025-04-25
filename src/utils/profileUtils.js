@@ -2,7 +2,7 @@
  * Utility functions for managing profiles and server configurations
  */
 
-import { generateUUID, isValidUUID } from "./helpers";
+import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 
 /**
  * Generates a final JSON configuration object for a profile.
@@ -98,7 +98,7 @@ export const convertFinalConfigToInternal = (
 ) => {
   // Create a new profile with existing settings
   const updatedProfile = {
-    id: currentProfile.id || generateUUID(),
+    id: currentProfile.id || uuidv4(),
     name: currentProfile.name, // Keep the original name
     servers: { ...currentProfile.servers }, // Start with current servers
   };
@@ -282,12 +282,16 @@ export const applyOverrides = (target, overrides) => {
  * @returns {Object|null} The profile object or null if not found
  */
 export const findProfileByIdOrName = (profiles, identifier) => {
-  if (!profiles || !identifier) return null;
+  if (!profiles || !identifier) {
+    return null;
+  }
 
-  // Try to find by ID first if it's a UUID
-  if (isValidUUID(identifier)) {
-    const profileById = profiles.find((p) => p.id === identifier);
-    if (profileById) return profileById;
+  // Check if identifier looks like a UUID first
+  if (uuidValidate(identifier)) {
+    const found = profiles.find((p) => p.id === identifier);
+    if (found) {
+      return found;
+    }
   }
 
   // Try to find by name
