@@ -3,6 +3,7 @@ const { createAppMenu } = require("./menu");
 const path = require("path");
 const fs = require("fs");
 const url = require("url");
+const { default: installExtension, REACT_DEVELOPER_TOOLS } = require("electron-devtools-installer");
 const {
   store,
   setupDefaultProfiles,
@@ -183,6 +184,12 @@ process.env.NODE_ENV = app.isPackaged ? "production" : "development";
 
 // App lifecycle
 app.whenReady().then(() => {
+  // Add React Developer Tools in development mode
+  if (process.env.NODE_ENV === "development") {
+    installExtension(REACT_DEVELOPER_TOOLS)
+      .then((name) => console.log(`Added Extension:  ${name}`))
+      .catch((err) => console.error("Failed to install React DevTools:", err));
+  }
   // Run migrations to ensure store is up to date
   runMigrations();
 
