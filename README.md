@@ -136,13 +136,6 @@ For release instructions, see the [Release Guide](docs/RELEASING.md).
 
 MCP Palette uses [Babel](https://babeljs.io/) (see `.babelrc`) to enable modern JavaScript and React features, and to support Jest-based testing.
 
-## ⚡️ What’s New in 1.2.0
-
-- Full Jest + React Testing Library support
-- Babel configuration for modern JS/React and tests
-- File/style mocks for testing
-- Updated documentation
-
 ## 🧰 Architecture
 
 MCP Palette uses a "Server Master List + Profile Overrides" architecture:
@@ -177,10 +170,6 @@ mcp-palette/
 │   ├── utils/                 # Utility functions
 │   │   └── profileUtils.js
 │   └── main.jsx               # Frontend entry point
-├── scripts/                   # Helper scripts
-│   ├── build.sh
-│   ├── fix-and-rebuild.sh
-│   └── ...
 ├── package.json
 └── vite.config.js             # Vite configuration
 ```

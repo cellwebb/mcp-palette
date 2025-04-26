@@ -66,8 +66,7 @@
   "files": [
     "dist",
     "electron",
-    "src",
-    "main.js"
+    "src"
   ],
   "build": {
     "appId": "com.electron.mcp-palette",
