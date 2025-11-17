@@ -1,46 +1,64 @@
-import { useState, useEffect } from "react";
-import ProfileSelector from "./components/ProfileSelector";
-import ServerMasterList from "./components/ServerMasterList";
-import ProfileServerList from "./components/ProfileServerList";
-import MasterServerForm from "./components/MasterServerForm";
-import ProfileServerOverridesForm from "./components/ProfileServerOverridesForm";
-import JsonEditor from "./components/JsonEditor";
-import ServerSelectionModal from "./components/ServerSelectionModal";
-import SimpleRenameModal from "./components/SimpleRenameModal";
-import {
-  generateFinalProfileConfig,
-  convertFinalConfigToInternal,
-  findProfileByIdOrName,
-  getServerDisplayName,
-} from "./utils/profileUtils";
-import {
-  formatSingleServerConfig,
-  formatServerListToMcpJson,
-} from "./utils/validation/mcpValidator";
-import { v4 as uuidv4 } from 'uuid';
-import "./styles/index.css";
-import "./styles/validation.css";
-import "./styles/overrides.css";
+import { useEffect } from 'react';
+import ProfileSelector from './components/ProfileSelector';
+import ProfilesView from './components/ProfilesView';
+import ServerMasterListView from './components/ServerMasterListView';
+import ServerSelectionModal from './components/ServerSelectionModal';
+import SimpleRenameModal from './components/SimpleRenameModal';
+import { convertFinalConfigToInternal } from './utils/profileUtils';
+import { useProfiles } from './hooks/useProfiles';
+import { useServerMasterList } from './hooks/useServerMasterList';
+import { useAppState } from './hooks/useAppState';
+import './styles/index.css';
+import './styles/validation.css';
+import './styles/overrides.css';
 
 const App = () => {
-  const [showConfirmRestoreModal, setShowConfirmRestoreModal] = useState(false);
-  const [showConfirmRemoveModal, setShowConfirmRemoveModal] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [confirmMessage, setConfirmMessage] = useState("");
-  const [serverMasterList, setServerMasterList] = useState({});
-  const [profiles, setProfiles] = useState([]);
-  const [activeProfile, setActiveProfile] = useState("");
-  const [activePage, setActivePage] = useState("profiles"); // 'profiles' or 'serverMasterList'
-  const [selectedServerMaster, setSelectedServerMaster] = useState(null);
-  const [selectedProfileServer, setSelectedProfileServer] = useState(null);
-  const [editMode, setEditMode] = useState("form"); // 'form' or 'json'
-  const [viewingServerJson, setViewingServerJson] = useState(false); // New state for JSON viewer
-  const [isAddingServer, setIsAddingServer] = useState(false);
-  const [isAddingProfile, setIsAddingProfile] = useState(false);
-  const [isEditingOverrides, setIsEditingOverrides] = useState(false);
-  const [showServerSelectionModal, setShowServerSelectionModal] =
-    useState(false);
-  const [showRenameModal, setShowRenameModal] = useState(false);
+  // Use custom hooks
+  const {
+    profiles,
+    setProfiles,
+    activeProfile,
+    setActiveProfile,
+    currentProfile,
+    isAddingProfile,
+    setIsAddingProfile,
+    showRenameModal,
+    setShowRenameModal,
+    selectedProfileServer,
+    setSelectedProfileServer,
+    isEditingOverrides,
+    setIsEditingOverrides,
+    showServerSelectionModal,
+    setShowServerSelectionModal,
+    handleProfileSelect,
+    handleAddProfile,
+    handleRenameProfile,
+    handleDeleteProfile,
+    handleToggleProfileServer,
+    handleAddServerToProfile,
+    handleEditOverrides,
+    handleRemoveServerFromProfile,
+    handleSaveOverrides,
+    handleRestoreProfileServerDefaults,
+  } = useProfiles();
+
+  const {
+    serverMasterList,
+    setServerMasterList,
+    selectedServerMaster,
+    setSelectedServerMaster,
+    isAddingServer,
+    setIsAddingServer,
+    viewingServerJson,
+    setViewingServerJson,
+    handleAddMasterServer,
+    handleSaveMasterServer,
+    handleUpdateMasterServer,
+    handleDeleteMasterServer,
+    handleRestoreServerDefaults,
+  } = useServerMasterList();
+
+  const { activePage, setActivePage, editMode, setEditMode } = useAppState();
 
   // Load data on initial render
   useEffect(() => {
@@ -55,7 +73,7 @@ const App = () => {
         const active = await window.api.getActiveProfile();
         setActiveProfile(active);
       } catch (error) {
-        console.error("Failed to load data:", error);
+        console.error('Failed to load data:', error);
       }
     };
 
@@ -74,503 +92,9 @@ const App = () => {
     }
   }, []);
 
-  // Get the current profile object
-  const currentProfile = findProfileByIdOrName(profiles, activeProfile) || {};
-
-  // Handle profile selection
-  const handleProfileSelect = async (profileId) => {
-    try {
-      await window.api.setActiveProfile(profileId);
-      const profile = findProfileByIdOrName(profiles, profileId);
-      setActiveProfile(profile ? profile.name : "");
-      setSelectedProfileServer(null);
-    } catch (error) {
-      console.error("Failed to set active profile:", error);
-    }
-  };
-
-  // Handle adding a new profile - SIMPLIFIED VERSION
-  const handleAddProfile = (profileName) => {
-    if (!profileName || !profileName.trim()) {
-      alert("Profile name cannot be empty");
-      return;
-    }
-
-    // Check for duplicate names
-    if (
-      profiles.some((p) => p.name.toLowerCase() === profileName.toLowerCase())
-    ) {
-      alert(`A profile with the name "${profileName}" already exists`);
-      return;
-    }
-
-    // Create new profile object
-    const newProfile = {
-      id: uuidv4(),
-      name: profileName.trim(),
-      servers: {},
-    };
-
-    // Use a synchronous approach to make debugging easier
-    window.api
-      .addProfile(newProfile)
-      .then((updatedProfiles) => {
-        console.log("Profile added successfully:", newProfile);
-        setProfiles(updatedProfiles);
-        setIsAddingProfile(false);
-      })
-      .catch((error) => {
-        console.error("Failed to add profile:", error);
-        alert("Error creating profile: " + (error.message || "Unknown error"));
-      });
-  };
-
-  // Handle renaming a profile
-  const handleRenameProfile = async (params) => {
-    // Ensure params have the correct format
-    let oldName, newName;
-
-    if (typeof params === "object" && params.oldName && params.newName) {
-      oldName = params.oldName;
-      newName = params.newName;
-    } else if (typeof params === "string" && typeof arguments[1] === "string") {
-      // Handle legacy format with separate arguments
-      oldName = params;
-      newName = arguments[1];
-      console.warn(
-        "Deprecated: handleRenameProfile now expects an object with oldName and newName properties",
-      );
-    } else {
-      console.error("Invalid parameters for handleRenameProfile:", params);
-      throw new Error("Invalid parameters for profile rename");
-    }
-
-    console.log("handleRenameProfile called with:", { oldName, newName });
-
-    try {
-      // Call the API with the correct parameter structure
-      const updatedProfiles = await window.api.renameProfile({
-        oldName,
-        newName,
-      });
-
-      // Update state based on returned profiles
-      setProfiles([...updatedProfiles]); // Force a new array reference
-
-      // Update active profile if it was renamed
-      if (activeProfile === oldName) {
-        setActiveProfile(newName);
-      }
-
-      console.log("Rename completed successfully");
-      return updatedProfiles;
-    } catch (error) {
-      console.error("Failed to rename profile:", error);
-      throw error; // Re-throw so caller can handle it
-    }
-  };
-
-  // Handle deleting a profile
-  const handleDeleteProfile = async (profileId) => {
-    const profile = findProfileByIdOrName(profiles, profileId);
-    if (!profile) {
-      console.error("Cannot find profile to delete");
-      return;
-    }
-
-    const profileName = profile.name;
-    console.log(`Attempting to delete profile: ${profileName}`);
-
-    // Validate profile name
-    if (!profileName) {
-      console.error("Cannot delete profile with empty name");
-      return;
-    }
-
-    // Check if this is the only profile
-    if (profiles.length <= 1) {
-      await window.api.safeAlert("Cannot delete the last remaining profile");
-      return;
-    }
-
-    // Confirm deletion with user using safe confirm dialog
-    const confirmed = await window.api.safeConfirm(
-      `Are you sure you want to delete the profile "${profileName}"?`,
-    );
-    if (!confirmed) {
-      console.log("Profile deletion cancelled by user");
-      return;
-    }
-
-    console.log("User confirmed deletion, proceeding...");
-
-    try {
-      // Call API to delete profile
-      console.log("Calling deleteProfile API");
-      const updatedProfiles = await window.api.deleteProfile(profileId);
-      console.log("API call successful, profiles updated", updatedProfiles);
-
-      // Create new reference to force re-render
-      setProfiles([...updatedProfiles]);
-
-      // If the active profile was deleted, fetch the new active profile
-      if (activeProfile === profileName) {
-        console.log("Active profile was deleted, getting new active profile");
-        const newActiveProfile = await window.api.getActiveProfile();
-        console.log(`New active profile: ${newActiveProfile}`);
-        setActiveProfile(newActiveProfile);
-      }
-
-      // Reset any selected server
-      setSelectedProfileServer(null);
-
-      console.log("Profile deletion completed successfully");
-    } catch (error) {
-      console.error("Failed to delete profile:", error);
-      await window.api.safeAlert(error.message || "Failed to delete profile");
-    }
-  };
-
-  // Handle adding a server to master list
-  const handleAddMasterServer = () => {
-    setSelectedServerMaster(null);
-    setIsAddingServer(true);
-    setEditMode("form"); // Switch to form view when adding a server
-  };
-
-  // Handle saving a server to master list
-  const handleSaveMasterServer = async (serverData) => {
-    try {
-      // UUID is now always generated on the backend
-      // We don't need to extract or handle the ID manually
-
-      const updatedMasterList = await window.api.addMasterServer(serverData);
-
-      setServerMasterList(updatedMasterList);
-      setIsAddingServer(false);
-      setSelectedServerMaster(null);
-
-      // Show success message
-      await window.api.safeAlert(
-        `Server "${serverData.name}" added to Master List successfully!`,
-      );
-    } catch (error) {
-      console.error("Failed to save server:", error);
-      await window.api.safeAlert("Failed to save server: " + error.message);
-    }
-  };
-
-  // Handle updating a server in master list
-  const handleUpdateMasterServer = async (serverId, updatedServer) => {
-    try {
-      const updatedMasterList = await window.api.updateMasterServer(
-        serverId,
-        updatedServer
-      );
-      setServerMasterList(updatedMasterList);
-      
-      // Reset state to return to the master list view
-      setSelectedServerMaster(null);
-      setIsAddingServer(false);
-      
-      // Show success message
-      await window.api.safeAlert(
-        `Server "${updatedServer.name}" updated successfully!`
-      );
-    } catch (error) {
-      console.error("Failed to update server:", error);
-      await window.api.safeAlert("Failed to update server: " + error.message);
-    }
-  };
-
-  // Handle deleting a server from master list
-  const handleDeleteMasterServer = async (serverId) => {
-    try {
-      const updatedMasterList = await window.api.deleteMasterServer(serverId);
-      setServerMasterList(updatedMasterList);
-      setSelectedServerMaster(null);
-
-      // Refresh profiles
-      const updatedProfiles = await window.api.getProfiles();
-      setProfiles(updatedProfiles);
-    } catch (error) {
-      console.error("Failed to delete server:", error);
-      await window.api.safeAlert("Failed to delete server: " + error.message);
-    }
-  };
-
-  // Handle restoring server defaults
-  const handleRestoreServerDefaults = async (serverId) => {
-    try {
-      const serverConfig = serverMasterList[serverId];
-
-      // If no server config is found, show error
-      if (!serverConfig) {
-        await window.api.safeAlert(`Server with ID ${serverId} not found.`);
-        return;
-      }
-
-      // Get the original ID or name to determine server type
-      const serverType =
-        serverConfig.originalId || serverConfig.name || serverId;
-
-      // Default configurations based on server type
-      const defaultConfigs = {
-        filesystem: {
-          name: "filesystem",
-          command: "npx",
-          args: ["-y", "@modelcontextprotocol/server-filesystem"],
-          env: { BASE_DIRS: "~/Documents,~/Downloads" },
-          originalId: "filesystem",
-        },
-        memory: {
-          name: "memory",
-          command: "npx",
-          args: ["-y", "@modelcontextprotocol/server-memory"],
-          env: { MEMORY_FILE_PATH: "~/.mcp-memory.json" },
-          originalId: "memory",
-        },
-        puppeteer: {
-          name: "puppeteer",
-          command: "npx",
-          args: ["-y", "@modelcontextprotocol/server-puppeteer"],
-          env: {
-            HEADLESS: "true",
-            USER_AGENT: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-          },
-          originalId: "puppeteer",
-        },
-        // Add more server types as needed
-      };
-
-      // Try to determine server type from original ID or name
-      const serverTypeKey = Object.keys(defaultConfigs).find(
-        (key) => key === serverType || key === serverType.split("-")[0],
-      );
-
-      // Get default configuration for this server type or use fallback
-      const defaultConfig = serverTypeKey
-        ? defaultConfigs[serverTypeKey]
-        : {
-            name: serverConfig.name || "unnamed-server",
-            command: "npx",
-            args: ["-y", `@modelcontextprotocol/server-${serverType}`],
-            env: {},
-            originalId: serverConfig.originalId || serverType,
-          };
-
-      // Update the server with default configuration
-      const updatedMasterList = await window.api.updateMasterServer(
-        serverId,
-        defaultConfig,
-      );
-      setServerMasterList(updatedMasterList);
-
-      await window.api.safeAlert(
-        `Server "${getServerDisplayName(serverConfig)}" restored to default configuration.`,
-      );
-    } catch (error) {
-      console.error("Failed to restore server defaults:", error);
-      await window.api.safeAlert(
-        `Failed to restore defaults: ${error.message}`,
-      );
-    }
-  };
-
-  // Handle toggling a server in a profile
-  const handleToggleProfileServer = async (serverId) => {
-    try {
-      // Get current profile
-      const profile = findProfileByIdOrName(profiles, activeProfile);
-      if (!profile) return;
-
-      // Create a copy of the profile
-      const updatedProfile = { ...profile };
-
-      // Make sure servers object exists
-      if (!updatedProfile.servers) {
-        updatedProfile.servers = {};
-      }
-
-      // Make sure server entry exists
-      if (!updatedProfile.servers[serverId]) {
-        updatedProfile.servers[serverId] = {
-          enabled: false,
-          overrides: {},
-        };
-      }
-
-      // Toggle enabled state
-      updatedProfile.servers[serverId].enabled =
-        !updatedProfile.servers[serverId].enabled;
-
-      // Update profile
-      const updatedProfiles = await window.api.updateProfile(
-        activeProfile,
-        updatedProfile,
-      );
-      setProfiles(updatedProfiles);
-    } catch (error) {
-      console.error("Failed to toggle server:", error);
-      await window.api.safeAlert("Failed to toggle server: " + error.message);
-    }
-  };
-
-  // Handle adding server to profile (when importing from master list)
-  const handleAddServerToProfile = async (serverId) => {
-    try {
-      // Get current profile
-      const profile = findProfileByIdOrName(profiles, activeProfile);
-      if (!profile) return;
-
-      // Create a copy of the profile
-      const updatedProfile = { ...profile };
-
-      // Make sure servers object exists
-      if (!updatedProfile.servers) {
-        updatedProfile.servers = {};
-      }
-
-      // Add server if not already in profile
-      if (!updatedProfile.servers[serverId]) {
-        updatedProfile.servers[serverId] = {
-          enabled: true,
-          overrides: {},
-        };
-      }
-
-      // Update profile
-      const updatedProfiles = await window.api.updateProfile(
-        activeProfile,
-        updatedProfile,
-      );
-      setProfiles(updatedProfiles);
-
-      // Switch to profiles view
-      setActivePage("profiles");
-    } catch (error) {
-      console.error("Failed to add server to profile:", error);
-      await window.api.safeAlert(
-        "Failed to add server to profile: " + error.message,
-      );
-    }
-  };
-
-  // Handle editing profile server overrides
-  const handleEditOverrides = (serverId) => {
-    setSelectedProfileServer(serverId);
-    setIsEditingOverrides(true);
-  };
-
-  // Handle removing a server from profile
-  const handleRemoveServerFromProfile = async (serverId) => {
-    try {
-      // Get current profile
-      const profile = findProfileByIdOrName(profiles, activeProfile);
-      if (!profile) return;
-
-      // Create a copy of the profile
-      const updatedProfile = { ...profile };
-
-      // Make sure servers object exists
-      if (!updatedProfile.servers) return;
-
-      // Remove server from profile
-      if (updatedProfile.servers[serverId]) {
-        delete updatedProfile.servers[serverId];
-      }
-
-      // Update profile
-      const updatedProfiles = await window.api.updateProfile(
-        activeProfile,
-        updatedProfile,
-      );
-      setProfiles(updatedProfiles);
-    } catch (error) {
-      console.error("Failed to remove server from profile:", error);
-      await window.api.safeAlert(
-        "Failed to remove server from profile: " + error.message,
-      );
-    }
-  };
-
-  // Handle saving server overrides
-  const handleSaveOverrides = async (updatedServer) => {
-    try {
-      // Get current profile
-      const profile = findProfileByIdOrName(profiles, activeProfile);
-      if (!profile) return;
-
-      // Create a copy of the profile
-      const updatedProfile = { ...profile };
-
-      // Make sure servers object exists
-      if (!updatedProfile.servers) {
-        updatedProfile.servers = {};
-      }
-
-      // Update server in profile
-      updatedProfile.servers[selectedProfileServer] = updatedServer;
-
-      // Update profile
-      const updatedProfiles = await window.api.updateProfile(
-        activeProfile,
-        updatedProfile,
-      );
-      setProfiles(updatedProfiles);
-
-      // Exit editing mode
-      setIsEditingOverrides(false);
-      setSelectedProfileServer(null);
-    } catch (error) {
-      console.error("Failed to save overrides:", error);
-      await window.api.safeAlert("Failed to save overrides: " + error.message);
-    }
-  };
-
-  // Handle restoring profile server defaults (removes all overrides)
-  const handleRestoreProfileServerDefaults = async (serverId, profileName) => {
-    try {
-      // Get current profile
-      const profile = findProfileByIdOrName(profiles, profileName);
-      if (!profile) return;
-
-      // Create a copy of the profile
-      const updatedProfile = { ...profile };
-
-      // Reset server to default (remove all overrides) but keep enabled state
-      if (updatedProfile.servers && updatedProfile.servers[serverId]) {
-        const isEnabled = updatedProfile.servers[serverId].enabled;
-        updatedProfile.servers[serverId] = {
-          enabled: isEnabled,
-          overrides: {}, // Empty overrides
-        };
-      }
-
-      // Update profile
-      const updatedProfiles = await window.api.updateProfile(
-        profileName,
-        updatedProfile,
-      );
-      setProfiles(updatedProfiles);
-
-      // Show confirmation
-      const serverName = serverMasterList[serverId]
-        ? getServerDisplayName(serverMasterList[serverId])
-        : serverId;
-
-      await window.api.safeAlert(
-        `Server "${serverName}" in profile "${profileName}" restored to defaults.`,
-      );
-    } catch (error) {
-      console.error("Failed to restore server defaults:", error);
-      await window.api.safeAlert(
-        `Failed to restore defaults: ${error.message}`,
-      );
-    }
-  };
-
-  // Handle importing config
+  /**
+   * Handle importing config
+   */
   const handleImportConfig = async () => {
     try {
       const result = await window.api.importConfig();
@@ -584,46 +108,47 @@ const App = () => {
           setProfiles(result.profiles);
         }
 
-        await window.api.safeAlert("Configuration imported successfully!");
+        await window.api.safeAlert('Configuration imported successfully!');
       }
     } catch (error) {
-      console.error("Failed to import configuration:", error);
+      console.error('Failed to import configuration:', error);
       await window.api.safeAlert(`Import failed: ${error.message}`);
     }
   };
 
-  // Handle exporting config
+  /**
+   * Handle exporting config
+   */
   const handleExportConfig = async () => {
     try {
       const success = await window.api.exportConfig();
 
       if (success) {
-        await window.api.safeAlert("Configuration exported successfully!");
+        await window.api.safeAlert('Configuration exported successfully!');
       }
     } catch (error) {
-      console.error("Failed to export configuration:", error);
+      console.error('Failed to export configuration:', error);
       await window.api.safeAlert(`Export failed: ${error.message}`);
     }
   };
 
-  // Handle JSON edit
+  /**
+   * Handle JSON edit
+   */
   const handleJsonEdit = async (jsonData) => {
     try {
       const parsedData = JSON.parse(jsonData);
 
-      if (activePage === "profiles") {
+      if (activePage === 'profiles') {
         // Convert the final (user-facing) format back to internal format
         const updatedProfile = convertFinalConfigToInternal(
           parsedData,
           currentProfile,
-          serverMasterList,
+          serverMasterList
         );
 
         // Update the profile
-        const updatedProfiles = await window.api.updateProfile(
-          activeProfile,
-          updatedProfile,
-        );
+        const updatedProfiles = await window.api.updateProfile(activeProfile, updatedProfile);
         setProfiles(updatedProfiles);
       } else {
         // Update each server in the master list
@@ -637,11 +162,34 @@ const App = () => {
         setServerMasterList(updatedMasterList);
       }
 
-      setEditMode("form");
+      setEditMode('form');
     } catch (error) {
-      console.error("Failed to update from JSON:", error);
+      console.error('Failed to update from JSON:', error);
       await window.api.safeAlert(`Failed to save JSON: ${error.message}`);
     }
+  };
+
+  /**
+   * Handle delete server with profile refresh
+   */
+  const handleDeleteMasterServerWithRefresh = async (serverId) => {
+    try {
+      await handleDeleteMasterServer(serverId);
+
+      // Refresh profiles
+      const updatedProfiles = await window.api.getProfiles();
+      setProfiles(updatedProfiles);
+    } catch (error) {
+      // Error already handled in handleDeleteMasterServer
+    }
+  };
+
+  /**
+   * Handle adding server to profile and switching to profiles view
+   */
+  const handleAddServerToProfileAndSwitch = async (serverId) => {
+    await handleAddServerToProfile(serverId);
+    setActivePage('profiles');
   };
 
   return (
@@ -653,7 +201,7 @@ const App = () => {
           onClose={() => setShowServerSelectionModal(false)}
           serverMasterList={serverMasterList}
           currentProfileServers={currentProfile.servers || {}}
-          onAddServer={handleAddServerToProfile}
+          onAddServer={handleAddServerToProfileAndSwitch}
         />
       )}
 
@@ -669,6 +217,7 @@ const App = () => {
         onCancel={() => setShowRenameModal(false)}
         onRenameProfile={handleRenameProfile}
       />
+
       <header className="header">
         <h1>MCP Palette</h1>
         <h2 className="subtitle">MCP Server Configuration Manager</h2>
@@ -676,14 +225,14 @@ const App = () => {
 
       <div className="tabs">
         <div
-          className={`tab ${activePage === "profiles" ? "active" : ""}`}
-          onClick={() => setActivePage("profiles")}
+          className={`tab ${activePage === 'profiles' ? 'active' : ''}`}
+          onClick={() => setActivePage('profiles')}
         >
           Profiles
         </div>
         <div
-          className={`tab ${activePage === "serverMasterList" ? "active" : ""}`}
-          onClick={() => setActivePage("serverMasterList")}
+          className={`tab ${activePage === 'serverMasterList' ? 'active' : ''}`}
+          onClick={() => setActivePage('serverMasterList')}
         >
           Server Master List
         </div>
@@ -691,7 +240,7 @@ const App = () => {
 
       <div className="main-content">
         <div className="sidebar">
-          {activePage === "profiles" ? (
+          {activePage === 'profiles' ? (
             <ProfileSelector
               profiles={profiles}
               activeProfile={activeProfile}
@@ -706,17 +255,17 @@ const App = () => {
             <div className="server-master-info">
               <h2>Server Master List</h2>
               <p>
-                The Server Master List contains all available MCP servers that
-                can be used in profiles.
+                The Server Master List contains all available MCP servers that can be used in
+                profiles.
               </p>
               <p>
-                Each server in the master list defines a base configuration that
-                can be customized in individual profiles.
+                Each server in the master list defines a base configuration that can be customized
+                in individual profiles.
               </p>
               <button
                 className="button button-primary"
                 onClick={handleAddMasterServer}
-                style={{ marginTop: "10px" }}
+                style={{ marginTop: '10px' }}
               >
                 Add New Server
               </button>
@@ -725,227 +274,55 @@ const App = () => {
         </div>
 
         <div className="main-panel">
-          {activePage === "profiles" ? (
-            // Profiles View
-            <>
-              {activeProfile && (
-                <>
-                  <div className="tabs">
-                    <div
-                      className={`tab ${editMode === "form" ? "active" : ""}`}
-                      onClick={() => setEditMode("form")}
-                    >
-                      Form View
-                    </div>
-                    <div
-                      className={`tab ${editMode === "json" ? "active" : ""}`}
-                      onClick={() => setEditMode("json")}
-                    >
-                      JSON View
-                    </div>
-                  </div>
-
-                  {editMode === "form" ? (
-                    <>
-                      {isEditingOverrides ? (
-                        <ProfileServerOverridesForm
-                          serverId={selectedProfileServer}
-                          profileName={activeProfile}
-                          masterServer={serverMasterList[selectedProfileServer]}
-                          profileServer={
-                            currentProfile.servers &&
-                            currentProfile.servers[selectedProfileServer]
-                          }
-                          onSave={handleSaveOverrides}
-                          onCancel={() => {
-                            setIsEditingOverrides(false);
-                            setSelectedProfileServer(null);
-                          }}
-                        />
-                      ) : (
-                        <>
-                          <div className="profile-header">
-                            <h2>Servers in Profile: {activeProfile}</h2>
-                            <div
-                              className="profile-header-actions"
-                              style={{ display: "flex", gap: "10px" }}
-                            >
-                              <button
-                                className="button button-primary"
-                                onClick={() =>
-                                  setShowServerSelectionModal(true)
-                                }
-                              >
-                                Add Server from Master List
-                              </button>
-                              {/* Rename button */}
-                              <button
-                                className="button button-secondary"
-                                onClick={() => setShowRenameModal(true)}
-                              >
-                                Rename Profile
-                              </button>
-                              {/* Only show delete button if profile has no servers and there's more than one profile */}
-                              {profiles.length > 1 &&
-                                (!currentProfile.servers ||
-                                  Object.keys(currentProfile.servers).length ===
-                                    0) && (
-                                  <button
-                                    className="button button-danger"
-                                    onClick={async () => {
-                                      const confirmed =
-                                        await window.api.safeConfirm(
-                                          `Are you sure you want to delete the profile "${activeProfile}"?`,
-                                        );
-                                      if (confirmed) {
-                                        await handleDeleteProfile(
-                                          currentProfile.id,
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    Delete Profile
-                                  </button>
-                                )}
-                            </div>
-                          </div>
-
-                          <ProfileServerList
-                            profile={currentProfile}
-                            masterServers={serverMasterList}
-                            selectedServer={selectedProfileServer}
-                            onSelectServer={setSelectedProfileServer}
-                            onToggleServer={handleToggleProfileServer}
-                            onEditOverrides={handleEditOverrides}
-                            onRemoveServer={handleRemoveServerFromProfile}
-                            onRestoreDefaults={
-                              handleRestoreProfileServerDefaults
-                            }
-                          />
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <JsonEditor
-                      json={JSON.stringify(
-                        (() => {
-                          try {
-                            const cfg = generateFinalProfileConfig(
-                              currentProfile,
-                              serverMasterList,
-                            );
-                            return cfg || { mcpServers: {} };
-                          } catch (e) {
-                            console.error('Error generating profile JSON:', e);
-                            return { mcpServers: {} };
-                          }
-                        })(),
-                        null,
-                        2,
-                      )}
-                      readOnly={true}
-                      isProfileView={true}
-                      profileName={activeProfile}
-                    />
-                  )}
-                </>
-              )}
-            </>
+          {activePage === 'profiles' ? (
+            <ProfilesView
+              currentProfile={currentProfile}
+              activeProfile={activeProfile}
+              profiles={profiles}
+              serverMasterList={serverMasterList}
+              selectedProfileServer={selectedProfileServer}
+              isEditingOverrides={isEditingOverrides}
+              editMode={editMode}
+              setEditMode={setEditMode}
+              onToggleServer={handleToggleProfileServer}
+              onEditOverrides={handleEditOverrides}
+              onRemoveServer={handleRemoveServerFromProfile}
+              onRestoreDefaults={(serverId) =>
+                handleRestoreProfileServerDefaults(serverId, activeProfile, serverMasterList)
+              }
+              onSaveOverrides={handleSaveOverrides}
+              onCancelOverrides={() => {
+                setIsEditingOverrides(false);
+                setSelectedProfileServer(null);
+              }}
+              onShowServerSelectionModal={() => setShowServerSelectionModal(true)}
+              onShowRenameModal={() => setShowRenameModal(true)}
+              onDeleteProfile={handleDeleteProfile}
+            />
           ) : (
-            // Server Master List View
-            <>
-              <div className="tabs">
-                <div
-                  className={`tab ${editMode === "form" ? "active" : ""}`}
-                  onClick={() => setEditMode("form")}
-                >
-                  Form View
-                </div>
-                <div
-                  className={`tab ${editMode === "json" ? "active" : ""}`}
-                  onClick={() => setEditMode("json")}
-                >
-                  JSON View
-                </div>
-              </div>
-
-              {editMode === "form" ? (
-                <>
-                  {viewingServerJson && selectedServerMaster ? (
-                    // View individual server JSON
-                    <div className="server-json-viewer">
-                      <div
-                        className="server-json-actions"
-                        style={{ textAlign: "right", marginBottom: "15px" }}
-                      >
-                        <button
-                          className="button button-secondary"
-                          onClick={() => setViewingServerJson(false)}
-                        >
-                          Back to Form
-                        </button>
-                      </div>
-
-                      <JsonEditor
-                        json={JSON.stringify(
-                          {
-                            [getServerDisplayName(
-                              serverMasterList[selectedServerMaster],
-                            )]: formatSingleServerConfig(
-                              serverMasterList[selectedServerMaster],
-                            ),
-                          },
-                          null,
-                          2,
-                        )}
-                        readOnly={true}
-                        isProfileView={false}
-                        serverName={getServerDisplayName(
-                          serverMasterList[selectedServerMaster],
-                        )}
-                      />
-                    </div>
-                  ) : isAddingServer || selectedServerMaster ? (
-                    <MasterServerForm
-                      server={
-                        selectedServerMaster
-                          ? serverMasterList[selectedServerMaster]
-                          : null
-                      }
-                      serverId={selectedServerMaster}
-                      onSave={selectedServerMaster ? handleUpdateMasterServer : handleSaveMasterServer}
-                      onCancel={() => {
-                        setIsAddingServer(false);
-                        setSelectedServerMaster(null);
-                      }}
-                    />
-                  ) : (
-                    <ServerMasterList
-                      servers={serverMasterList}
-                      profiles={profiles}
-                      selectedServer={selectedServerMaster}
-                      onSelectServer={setSelectedServerMaster}
-                      onAddServer={handleAddMasterServer}
-                      onDeleteServer={handleDeleteMasterServer}
-                      onViewServerJson={(serverId) => {
-                        setSelectedServerMaster(serverId);
-                        setViewingServerJson(true);
-                      }}
-                    />
-                  )}
-                </>
-              ) : (
-                <JsonEditor
-                  json={JSON.stringify(
-                    formatServerListToMcpJson(serverMasterList),
-                    null,
-                    2,
-                  )}
-                  readOnly={true}
-                  isProfileView={false}
-                />
-              )}
-            </>
+            <ServerMasterListView
+              serverMasterList={serverMasterList}
+              selectedServerMaster={selectedServerMaster}
+              isAddingServer={isAddingServer}
+              viewingServerJson={viewingServerJson}
+              profiles={profiles}
+              editMode={editMode}
+              setEditMode={setEditMode}
+              onSelectServer={setSelectedServerMaster}
+              onAddMasterServer={handleAddMasterServer}
+              onSaveMasterServer={handleSaveMasterServer}
+              onUpdateMasterServer={handleUpdateMasterServer}
+              onDeleteMasterServer={handleDeleteMasterServerWithRefresh}
+              onViewServerJson={(serverId) => {
+                setSelectedServerMaster(serverId);
+                setViewingServerJson(true);
+              }}
+              onCancelServerForm={() => {
+                setIsAddingServer(false);
+                setSelectedServerMaster(null);
+              }}
+              onBackFromJson={() => setViewingServerJson(false)}
+            />
           )}
         </div>
       </div>
