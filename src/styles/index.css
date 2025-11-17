@@ -482,6 +482,16 @@ body {
   font-size: 18px;
 }
 
+.env-help-text {
+  margin: -5px 0 15px 0;
+  padding: 10px;
+  background-color: #f0f7ff;
+  border-left: 3px solid #4a90e2;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+}
+
 .form-row {
   margin-bottom: 15px;
 }

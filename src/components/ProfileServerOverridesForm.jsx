@@ -531,6 +531,9 @@ const ProfileServerOverridesForm = ({
 
         <div className="form-section">
           <h3>Environment Variables</h3>
+          <p className="env-help-text">
+            Check the box next to a variable to override its value. Add new variables below - they will be merged with master list variables.
+          </p>
 
           <div className="form-row">
             <div className="env-var-input-group">
@@ -551,7 +554,7 @@ const ProfileServerOverridesForm = ({
                 className="button button-secondary"
                 onClick={handleAddEnvVar}
               >
-                Add
+                Add New Variable
               </button>
             </div>
           </div>
