@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run tests with coverage
-        run: npm test -- --coverage --coverageReporters=text-lcov
+        run: npm test -- --coverage --coverageReporters=text-lcov --coverageReporters=lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
