@@ -30,6 +30,26 @@ This guide explains how to create a new release of MCP Palette and automate mult
 3. Go to the [GitHub Releases page](https://github.com/cellwebb/mcp-palette/releases), draft a new release, and upload the installer(s).
 
 ## Notes
+
 - For cross-platform builds, prefer using GitHub Actions as described above.
 - Ensure all tests pass before releasing (`npm test`).
 - Update documentation and changelogs as needed for each release.
+
+## Publishing to npm
+
+Users can install MCP Palette directly from npm without cloning the repository. To publish a new version:
+
+1. **Prepare the release artifacts**
+   - Bump `package.json` with `npm version <patch|minor|major>` (this also creates a git tag).
+   - Run `npm install` (if needed) and `npm run build` or `npm run minimal-build` so the `files` listed in `package.json` are fresh.
+   - Make sure tests still pass (`npm test`).
+2. **Authenticate with npm**
+   ```bash
+   npm login
+   ```
+   Provide your npmjs.com credentials and OTP (if 2FA is enabled).
+3. **Publish**
+   ```bash
+   npm publish --access public
+   ```
+   The first publish requires `--access public`; it is optional afterward. Follow any additional prompts (e.g., OTP). After the command succeeds, users can run `npm install mcp-palette` directly.
