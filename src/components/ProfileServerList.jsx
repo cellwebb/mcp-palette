@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   filterInternalFields,
   getEffectiveConfig,
@@ -17,6 +18,8 @@ const ProfileServerList = ({
   onRemoveServer,
   onRestoreDefaults,
 }) => {
+  const [sortBy, setSortBy] = useState("name"); // name, command, enabled
+
   if (
     !profile ||
     !profile.servers ||
@@ -34,9 +37,59 @@ const ProfileServerList = ({
   // Get list of server IDs in this profile
   const profileServerIds = Object.keys(profile.servers);
 
+  // Sort profile servers
+  const getSortedServerIds = () => {
+    const serverIds = [...profileServerIds];
+
+    switch (sortBy) {
+      case "name":
+        return serverIds.sort((a, b) => {
+          const masterA = masterServers[a];
+          const masterB = masterServers[b];
+          if (!masterA || !masterB) return 0;
+          const nameA = getServerDisplayName(masterA).toLowerCase();
+          const nameB = getServerDisplayName(masterB).toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+      case "command":
+        return serverIds.sort((a, b) => {
+          const masterA = masterServers[a];
+          const masterB = masterServers[b];
+          if (!masterA || !masterB) return 0;
+          const cmdA = (masterA.command || "").toLowerCase();
+          const cmdB = (masterB.command || "").toLowerCase();
+          return cmdA.localeCompare(cmdB);
+        });
+      case "enabled":
+        return serverIds.sort((a, b) => {
+          const enabledA = profile.servers[a]?.enabled || false;
+          const enabledB = profile.servers[b]?.enabled || false;
+          // Sort enabled first (true > false)
+          return enabledB - enabledA;
+        });
+      default:
+        return serverIds;
+    }
+  };
+
   return (
     <div className="profile-server-list">
-      {profileServerIds.map((serverId) => {
+      <div className="profile-server-list-header">
+        <div className="sort-controls">
+          <label htmlFor="profile-sort-select">Sort by:</label>
+          <select
+            id="profile-sort-select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="sort-select"
+          >
+            <option value="name">Name</option>
+            <option value="command">Command</option>
+            <option value="enabled">Status (Enabled/Disabled)</option>
+          </select>
+        </div>
+      </div>
+      {getSortedServerIds().map((serverId) => {
         const masterData = masterServers[serverId];
         // Skip if master server no longer exists
         if (!masterData) return null;

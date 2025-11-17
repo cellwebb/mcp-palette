@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import DropdownMenu from "./DropdownMenu";
 import { getServerDisplayName } from "../utils/profileUtils";
 import ConfirmButton from "./ConfirmButton";
@@ -13,6 +13,8 @@ const ServerMasterList = ({
   onRestoreDefaults,
   profiles = [], // Added profiles prop with default
 }) => {
+  const [sortBy, setSortBy] = useState("name"); // name, command
+
   // Helper function to check if a server is used in any enabled profile
   const isServerInUse = (serverId) => {
     return profiles.some(
@@ -22,6 +24,29 @@ const ServerMasterList = ({
         profile.servers[serverId].enabled,
     );
   };
+
+  // Sort servers based on current sort option
+  const getSortedServers = () => {
+    const serverEntries = Object.entries(servers);
+
+    switch (sortBy) {
+      case "name":
+        return serverEntries.sort(([, a], [, b]) => {
+          const nameA = getServerDisplayName(a).toLowerCase();
+          const nameB = getServerDisplayName(b).toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+      case "command":
+        return serverEntries.sort(([, a], [, b]) => {
+          const cmdA = (a.command || "").toLowerCase();
+          const cmdB = (b.command || "").toLowerCase();
+          return cmdA.localeCompare(cmdB);
+        });
+      default:
+        return serverEntries;
+    }
+  };
+
   if (!servers || Object.keys(servers).length === 0) {
     return (
       <div className="empty-state">
@@ -42,13 +67,25 @@ const ServerMasterList = ({
       <div className="server-list-header">
         <h2>Server Master List</h2>
         <div className="server-list-actions">
+          <div className="sort-controls">
+            <label htmlFor="sort-select">Sort by:</label>
+            <select
+              id="sort-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="sort-select"
+            >
+              <option value="name">Name</option>
+              <option value="command">Command</option>
+            </select>
+          </div>
           <button className="button button-primary" onClick={onAddServer}>
             Add New Server
           </button>
         </div>
       </div>
 
-      {Object.entries(servers).map(([serverId, serverData]) => {
+      {getSortedServers().map(([serverId, serverData]) => {
         const serverName = getServerDisplayName(serverData);
 
         return (
