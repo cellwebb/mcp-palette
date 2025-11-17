@@ -396,8 +396,8 @@ const ProfileServerOverridesForm = ({
 
   return (
     <div className="form-container">
-      <h2>Customize Server for {profileName}</h2>
-      <p>Override specific settings from the Server Master List.</p>
+      <h2>Customize {masterServer.name} Server for {profileName}</h2>
+      <p>Override settings from the Server Master List.</p>
 
       <form onSubmit={handleSubmit}>
         <div className="form-section">
