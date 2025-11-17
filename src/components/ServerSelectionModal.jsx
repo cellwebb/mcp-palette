@@ -5,6 +5,7 @@ const ServerSelectionModal = ({
   show,
   onClose,
   serverMasterList,
+  currentProfileServers = {},
   onAddServer,
 }) => {
   const [selectedServers, setSelectedServers] = useState({});
@@ -67,15 +68,22 @@ const ServerSelectionModal = ({
               {Object.entries(serverMasterList).map(
                 ([serverId, serverData]) => {
                   const serverName = getServerDisplayName(serverData);
+                  const isAlreadyIncluded = serverId in currentProfileServers;
                   return (
-                    <div key={serverId} className="server-selection-item">
+                    <div key={serverId} className={`server-selection-item ${isAlreadyIncluded ? 'already-included' : ''}`}>
                       <label>
                         <input
                           type="checkbox"
                           checked={selectedServers[serverId] || false}
                           onChange={() => handleToggleServer(serverId)}
+                          disabled={isAlreadyIncluded}
                         />
-                        <span className="server-name">{serverName}</span>
+                        <span className="server-name">
+                          {serverName}
+                          {isAlreadyIncluded && (
+                            <span className="already-included-badge"> (Already added)</span>
+                          )}
+                        </span>
                         <span className="server-details">
                           <code>
                             {serverData.command}{" "}

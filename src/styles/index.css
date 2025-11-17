@@ -968,6 +968,26 @@ input[type="checkbox"] {
   font-size: 14px;
 }
 
+.server-selection-item.already-included {
+  opacity: 0.6;
+  background-color: #f5f5f5;
+}
+
+.server-selection-item.already-included label {
+  cursor: not-allowed;
+}
+
+.server-selection-item.already-included input[type="checkbox"] {
+  cursor: not-allowed;
+}
+
+.already-included-badge {
+  color: #999;
+  font-size: 12px;
+  font-weight: normal;
+  font-style: italic;
+}
+
 /* Profile header */
 .profile-header {
   display: flex;

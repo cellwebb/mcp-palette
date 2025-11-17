@@ -652,6 +652,7 @@ const App = () => {
           show={showServerSelectionModal}
           onClose={() => setShowServerSelectionModal(false)}
           serverMasterList={serverMasterList}
+          currentProfileServers={currentProfile.servers || {}}
           onAddServer={handleAddServerToProfile}
         />
       )}
