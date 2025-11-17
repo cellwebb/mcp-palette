@@ -127,3 +127,5 @@ ENV/
 
 # End of cleaned .gitignore
 release/
+.claude/
+.serena/
