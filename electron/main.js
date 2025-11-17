@@ -577,10 +577,17 @@ ipcMain.handle("export-config", async () => {
   }
 
   const isMcpFormat = formatResult.response === 0;
+
+  // Get the active profile name for the filename
+  const activeProfile = getProfileByIdOrName(store.get("activeProfile"));
+  const profileName = activeProfile?.name || "default";
+  // Sanitize profile name for use in filename
+  const sanitizedProfileName = profileName.replace(/[^a-zA-Z0-9-_]/g, '_');
+
   const fileExtension = isMcpFormat ? "json" : "backup.json";
   const defaultFilename = isMcpFormat
-    ? "mcp-config.json"
-    : "mcp-palette-backup.json";
+    ? `mcp-config-${sanitizedProfileName}.json`
+    : `mcp-palette-backup-${sanitizedProfileName}.json`;
 
   const result = await dialog.showSaveDialog({
     title: "Export Configuration",
@@ -594,7 +601,6 @@ ipcMain.handle("export-config", async () => {
     if (isMcpFormat) {
       // Export in MCP format
       const serverMasterList = store.get("serverMasterList");
-      const activeProfile = getProfileByIdOrName(store.get("activeProfile"));
 
       if (!activeProfile) {
         throw new Error("No active profile found");
