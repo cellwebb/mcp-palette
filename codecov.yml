@@ -13,7 +13,7 @@ coverage:
         threshold: 1%
   precision: 2
   round: down
-  range: "70...100"
+  range: "70...80"
 ignore:
   - "**/__mocks__/**"
   - "**/*.test.js"
