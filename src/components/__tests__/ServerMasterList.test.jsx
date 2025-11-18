@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ServerMasterList from '../ServerMasterList';
 
 // Mock navigator.clipboard
@@ -226,11 +226,79 @@ describe('ServerMasterList', () => {
   });
 
   describe('Dropdown menu actions', () => {
+    beforeEach(() => {
+      // Mock navigator.clipboard
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: jest.fn().mockResolvedValue(),
+        },
+      });
+      global.alert = jest.fn();
+      global.console.error = jest.fn();
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
     it('renders dropdown menu for each server', () => {
       render(<ServerMasterList servers={mockServers} {...mockCallbacks} />);
 
       const dropdownButtons = screen.getAllByRole('button', { name: 'More options' });
       expect(dropdownButtons).toHaveLength(3); // One for each server
+    });
+
+    it('copies server JSON to clipboard when action clicked', async () => {
+      render(<ServerMasterList servers={mockServers} {...mockCallbacks} />);
+
+      // Click dropdown menu (servers are sorted by name, so server-3 is first)
+      const dropdownButtons = screen.getAllByRole('button', { name: 'More options' });
+      fireEvent.click(dropdownButtons[0]);
+
+      // Click Copy JSON to clipboard
+      const copyButton = screen.getByText('Copy JSON to clipboard');
+      fireEvent.click(copyButton);
+
+      await waitFor(() => {
+        expect(navigator.clipboard.writeText).toHaveBeenCalled();
+        const copiedText = navigator.clipboard.writeText.mock.calls[0][0];
+        const parsed = JSON.parse(copiedText);
+        expect(parsed.id).toBe('server-3');
+      });
+
+      expect(alert).toHaveBeenCalledWith('Server configuration copied to clipboard');
+    });
+
+    it('handles clipboard copy error', async () => {
+      navigator.clipboard.writeText.mockRejectedValue(new Error('Clipboard error'));
+
+      render(<ServerMasterList servers={mockServers} {...mockCallbacks} />);
+
+      const dropdownButtons = screen.getAllByRole('button', { name: 'More options' });
+      fireEvent.click(dropdownButtons[0]);
+
+      const copyButton = screen.getByText('Copy JSON to clipboard');
+      fireEvent.click(copyButton);
+
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith(
+          'Failed to copy to clipboard: ',
+          expect.any(Error)
+        );
+        expect(alert).toHaveBeenCalledWith('Failed to copy to clipboard');
+      });
+    });
+
+    it('calls onViewServerJson when Preview JSON clicked', () => {
+      render(<ServerMasterList servers={mockServers} {...mockCallbacks} />);
+
+      const dropdownButtons = screen.getAllByRole('button', { name: 'More options' });
+      fireEvent.click(dropdownButtons[0]);
+
+      const previewButton = screen.getByText('Preview JSON');
+      fireEvent.click(previewButton);
+
+      expect(mockCallbacks.onViewServerJson).toHaveBeenCalledWith('server-3');
     });
   });
 
