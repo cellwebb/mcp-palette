@@ -446,4 +446,110 @@ describe("MasterServerForm", () => {
     // Save button should be disabled again
     expect(saveButton).toBeDisabled();
   });
+
+  test("shows JSON preview when Preview JSON button clicked", () => {
+    const { container } = render(
+      <MasterServerForm
+        server={serverData}
+        serverId="server-123"
+        onSave={() => {}}
+        onCancel={() => {}}
+      />
+    );
+
+    // Click Preview JSON
+    fireEvent.click(screen.getByText("Preview JSON"));
+
+    // Should show ServerJsonViewer
+    expect(container.querySelector('.server-json-viewer')).toBeInTheDocument();
+  });
+
+  test("calls onSave with server data for new server", () => {
+    const mockSave = jest.fn();
+
+    render(<MasterServerForm onSave={mockSave} onCancel={() => {}} />);
+
+    // Fill in required fields
+    fireEvent.change(screen.getByLabelText(/Display Name/), {
+      target: { value: "New Server" },
+    });
+    fireEvent.change(screen.getByLabelText(/Command/), {
+      target: { value: "node" },
+    });
+
+    // Submit form
+    fireEvent.submit(screen.getByRole("button", { name: /Save/ }).closest("form"));
+
+    // Should call onSave with server data (not serverId first)
+    expect(mockSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "New Server",
+        command: "node",
+        originalId: "New Server",
+      })
+    );
+  });
+
+  test("shows preview for new server with name", () => {
+    const { container } = render(<MasterServerForm onSave={() => {}} onCancel={() => {}} />);
+
+    // Fill in name
+    fireEvent.change(screen.getByLabelText(/Display Name/), {
+      target: { value: "Test Server" },
+    });
+    fireEvent.change(screen.getByLabelText(/Command/), {
+      target: { value: "node" },
+    });
+
+    // Click Preview JSON
+    fireEvent.click(screen.getByText("Preview JSON"));
+
+    // Should show server json viewer
+    expect(container.querySelector('.server-json-viewer')).toBeInTheDocument();
+  });
+
+  test("handles empty env in preview", () => {
+    const serverWithEmptyEnv = {
+      name: "Test Server",
+      command: "node",
+      args: [],
+      env: {}, // Empty env
+    };
+
+    const { container } = render(
+      <MasterServerForm
+        server={serverWithEmptyEnv}
+        serverId="server-123"
+        onSave={() => {}}
+        onCancel={() => {}}
+      />
+    );
+
+    // Click Preview JSON
+    fireEvent.click(screen.getByText("Preview JSON"));
+
+    // Should show preview without crashing
+    expect(container.querySelector('.server-json-viewer')).toBeInTheDocument();
+  });
+
+  test("validation badge is clickable", () => {
+    render(
+      <MasterServerForm
+        server={serverData}
+        serverId="server-123"
+        onSave={() => {}}
+        onCancel={() => {}}
+      />
+    );
+
+    // Should show validation badge
+    const badge = screen.getByTestId('validation-badge');
+    expect(badge).toBeInTheDocument();
+
+    // Click the badge
+    fireEvent.click(badge);
+
+    // Should not crash
+    expect(badge).toBeInTheDocument();
+  });
 });
