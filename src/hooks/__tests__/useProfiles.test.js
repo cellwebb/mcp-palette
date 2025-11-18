@@ -115,12 +115,12 @@ describe('useProfiles', () => {
       result.current.handleAddProfile('New Profile');
     });
 
-    // Wait for promise to resolve
+    // Wait for the state update to complete
     await waitFor(() => {
-      expect(mockApi.addProfile).toHaveBeenCalledWith(newProfile);
+      expect(result.current.profiles).toEqual(updatedProfiles);
     });
 
-    expect(result.current.profiles).toEqual(updatedProfiles);
+    expect(mockApi.addProfile).toHaveBeenCalledWith(newProfile);
     expect(result.current.isAddingProfile).toBe(false);
     consoleSpy.mockRestore();
   });
