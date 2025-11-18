@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import App from '../App';
 
 // Mock the custom hooks
@@ -23,8 +23,14 @@ jest.mock('../components/ProfileSelector', () => {
 });
 
 jest.mock('../components/ProfilesView', () => {
-  return function MockProfilesView() {
-    return <div data-testid="profiles-view">ProfilesView</div>;
+  return function MockProfilesView({ onShowServerSelectionModal, onShowRenameModal }) {
+    return (
+      <div data-testid="profiles-view">
+        ProfilesView
+        <button onClick={onShowServerSelectionModal}>Add Server from Master List</button>
+        <button onClick={onShowRenameModal}>Rename Profile</button>
+      </div>
+    );
   };
 });
 
@@ -35,14 +41,24 @@ jest.mock('../components/ServerMasterListView', () => {
 });
 
 jest.mock('../components/ServerSelectionModal', () => {
-  return function MockServerSelectionModal({ show }) {
-    return show ? <div data-testid="server-selection-modal">ServerSelectionModal</div> : null;
+  return function MockServerSelectionModal({ show, onClose }) {
+    return show ? (
+      <div data-testid="server-selection-modal">
+        <h2>Add Server to Profile</h2>
+        <button onClick={onClose}>Close</button>
+      </div>
+    ) : null;
   };
 });
 
 jest.mock('../components/SimpleRenameModal', () => {
-  return function MockSimpleRenameModal({ isOpen }) {
-    return isOpen ? <div data-testid="simple-rename-modal">SimpleRenameModal</div> : null;
+  return function MockSimpleRenameModal({ isOpen, onCancel }) {
+    return isOpen ? (
+      <div data-testid="simple-rename-modal">
+        <h2>Rename Profile</h2>
+        <button onClick={onCancel}>Cancel</button>
+      </div>
+    ) : null;
   };
 });
 
@@ -512,4 +528,5 @@ describe('App', () => {
     expect(container.querySelector('.sidebar')).toBeInTheDocument();
     expect(container.querySelector('.main-panel')).toBeInTheDocument();
   });
+
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ProfilesView from '../ProfilesView';
 
 // Mock child components
@@ -221,5 +221,66 @@ describe('ProfilesView', () => {
     expect(container).toBeInTheDocument();
 
     consoleSpy.mockRestore();
+  });
+
+  test('clicking Delete Profile button shows confirmation and deletes on confirm', async () => {
+    const propsWithEmptyProfile = {
+      ...mockProps,
+      currentProfile: { id: '123', name: 'Empty Profile', servers: {} },
+      activeProfile: 'Empty Profile',
+      profiles: [
+        { id: '123', name: 'Empty Profile', servers: {} },
+        { id: '456', name: 'Other Profile', servers: {} },
+      ],
+    };
+
+    // Mock window.api.safeConfirm
+    window.api = { safeConfirm: jest.fn().mockResolvedValue(true) };
+
+    render(<ProfilesView {...propsWithEmptyProfile} />);
+
+    const deleteButton = screen.getByText('Delete Profile');
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(window.api.safeConfirm).toHaveBeenCalledWith(
+        'Are you sure you want to delete the profile "Empty Profile"?'
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockProps.onDeleteProfile).toHaveBeenCalledWith('123');
+    });
+
+    delete window.api;
+  });
+
+  test('clicking Delete Profile button cancels when user declines', async () => {
+    const propsWithEmptyProfile = {
+      ...mockProps,
+      currentProfile: { id: '123', name: 'Empty Profile', servers: {} },
+      activeProfile: 'Empty Profile',
+      profiles: [
+        { id: '123', name: 'Empty Profile', servers: {} },
+        { id: '456', name: 'Other Profile', servers: {} },
+      ],
+    };
+
+    // Mock window.api.safeConfirm to return false
+    window.api = { safeConfirm: jest.fn().mockResolvedValue(false) };
+
+    render(<ProfilesView {...propsWithEmptyProfile} />);
+
+    const deleteButton = screen.getByText('Delete Profile');
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(window.api.safeConfirm).toHaveBeenCalled();
+    });
+
+    // onDeleteProfile should not be called
+    expect(mockProps.onDeleteProfile).not.toHaveBeenCalled();
+
+    delete window.api;
   });
 });
